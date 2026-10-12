@@ -71,6 +71,189 @@ footer{text-align:center;padding:24px;color:#92a7c3}
     <button class="secondary logout">Log Out</button>
   </div>
   <div class="grid">
+    <div class="sport"><div class="emoji">🏇</div><h3>Horse Racing</h3><p>V1.6-L</p><button disabled>RUN PREDICTION</button></div>
+    <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><button disabled>RUN PREDICTION</button></div>
+    <div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
+    <div class="sport"><div class="emoji">🏈</div><h3>NFL</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
+    <div class="sport"><div class="emoji">⚾</div><h3>MLB</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
+    <div class="sport"><div class="emoji">🏀</div><h3>NBL</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
+  </div>
+  <p>Prediction engines will be activated after their original calculations and data are verified.</p>
+</section>
+
+<section id="admin" class="panel hidden">
+  <h2>Administrator — Member Approvals</h2>
+  <button id="reloadUsers">Refresh Users</button>
+  <div id="users"></div>
+</section>
+</main>
+<footer>Connor's Prediction Hub · Prototype V0.1</footer>
+
+<script type="module">
+import {createClient} from
+'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const URL = 'https://uvqbvqhkztdmdiayycuz.supabase.co';
+const KEY = 'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS';
+const db = createClient(URL, KEY);
+
+const $ = id => document.getElementById(id);
+const sections = ['auth','pending','dashboard','admin'];
+const message = text => $('message').textContent = text;
+
+function show(...names){
+  for(const id of sections){
+    $(id).classList.toggle('hidden',!names.includes(id));
+  }
+}
+
+async function loadUsers(){
+  const list = $('users');
+  list.replaceChildren();
+  const {data,error} = await db.from('profiles')
+    .select('id,email,role,approved,created_at')
+    .order('created_at',{ascending:false});
+  if(error){message(error.message);return;}
+  if(!data.length){list.textContent='No members yet.';return;}
+
+  for(const user of data){
+    const row=document.createElement('div');
+    row.className='user';
+    const info=document.createElement('div');
+    info.textContent=(user.email||user.id)+' — '+
+      user.role+' — '+(user.approved?'Approved':'Pending');
+    row.append(info);
+
+    if(user.role==='user'){
+      const button=document.createElement('button');
+      button.textContent=user.approved?'Revoke Access':'Approve User';
+      button.className=user.approved?'danger':'';
+      button.onclick=async()=>{
+        button.disabled=true;
+        const {error}=await db.rpc('set_user_approval',{
+          target_user:user.id,
+          new_approved:!user.approved
+        });
+        if(error)message(error.message);
+        else message('Member access updated.');
+        await loadUsers();
+      };
+      row.append(button);
+    }
+    list.append(row);
+  }
+}
+
+async function refresh(){
+  show();
+  const {data:{user},error}=await db.auth.getUser();
+  if(error||!user){
+    show('auth');
+    message('Log in or create an account.');
+    return;
+  }
+  const {data:profile,error:profileError}=await db
+    .from('profiles')
+    .select('role,approved,email')
+    .eq('id',user.id)
+    .single();
+
+  if(profileError||!profile){
+    show('pending');
+    message('Profile unavailable. Contact the administrator.');
+    return;
+  }
+  if(!profile.approved){
+    show('pending');
+    message('Signed in. Awaiting administrator approval.');
+    return;
+  }
+  $('welcome').textContent='Signed in as '+(user.email||'member');
+  if(profile.role==='admin'){
+    show('dashboard','admin');
+    await loadUsers();
+  }else{
+    show('dashboard');
+  }
+  message('Welcome to the Prediction Hub.');
+}
+
+$('login').onclick=async()=>{
+  const email=$('email').value.trim();
+  const password=$('password').value;
+  if(!email||!password){message('Enter your email and password.');return;}
+  const {error}=await db.auth.signInWithPassword({email,password});
+  if(error)message(error.message);
+  else await refresh();
+};
+
+$('register').onclick=async()=>{
+  const email=$('email').value.trim();
+  const password=$('password').value;
+  if(!email||password.length<6){
+    message('Enter an email and password of at least 6 characters.');
+    return;
+  }
+  const {error}=await db.auth.signUp({
+    email,password,
+    options:{emailRedirectTo:location.origin+location.pathname}
+  });
+  message(error?error.message:
+    'Registration submitted. Check your email to confirm your account, then wait for admin approval.');
+};
+
+document.querySelectorAll('.logout').forEach(button=>{
+  button.onclick=async()=>{
+    await db.auth.signOut();
+    await refresh();
+  };
+});
+$('refresh').onclick=refresh;
+$('reloadUsers').onclick=loadUsers;
+
+db.auth.onAuthStateChange(()=>{
+  setTimeout(refresh,0);
+});
+refresh();
+</script>
+</body>
+</html>  <h1>Connor's Prediction Hub</h1>
+  <p>Sports prediction and performance analytics</p>
+</header>
+<main>
+<div id="message" class="status" role="status">Connecting...</div>
+
+<section id="auth" class="panel hidden">
+  <h2>Member Login</h2>
+  <label>Email address
+    <input id="email" type="email" autocomplete="email">
+  </label>
+  <label>Password
+    <input id="password" type="password" autocomplete="current-password">
+  </label>
+  <div class="actions">
+    <button id="login">Log In</button>
+    <button id="register" class="secondary">Create Account</button>
+  </div>
+  <p>New accounts require administrator approval.</p>
+</section>
+
+<section id="pending" class="panel hidden">
+  <h2>Account Pending Approval</h2>
+  <p>Your account is registered but has not yet been approved by the administrator.</p>
+  <div class="actions">
+    <button id="refresh" class="secondary">Check Approval</button>
+    <button class="secondary logout">Log Out</button>
+  </div>
+</section>
+
+<section id="dashboard" class="hidden">
+  <div class="panel">
+    <h2>Prediction Dashboard</h2>
+    <p id="welcome"></p>
+    <button class="secondary logout">Log Out</button>
+  </div>
+  <div class="grid">
  
 <div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html">OPEN NHL DASHBOARD</a></div>
 
