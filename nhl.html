@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NHL V1.0 | Connor's Prediction Hub</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1220;color:#eaf1ff;font-family:system-ui,Arial,sans-serif}
+header{padding:22px;background:#121e32;border-bottom:1px solid #30435d}
+main{max-width:1050px;margin:28px auto;padding:0 16px}
+h1{margin:0;font-size:26px}
+h2{font-size:20px}
+p,.muted{color:#a9bad1}
+a{color:#66c2ff}
+.panel{background:#142239;border:1px solid #30435d;border-radius:14px;padding:20px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.stat{background:#1b2e49;padding:20px;border-radius:12px}
+.stat strong{font-size:28px;display:block;margin-top:8px}
+button{background:#36a5ee;color:#071322;border:0;border-radius:8px;padding:12px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.status{padding:14px;background:#243951;border-radius:8px;margin-bottom:18px}
+.game{border-top:1px solid #34465f;padding:18px 0}
+.score{font-size:23px;font-weight:bold}
+.tag{display:inline-block;background:#30435d;padding:5px 10px;border-radius:6px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #34465f}
+th{color:#a9bad1}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <a href="./index.html">← Prediction Hub</a>
+  <h1>🏒 NHL Prediction Model V1.0</h1>
+  <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
+</header>
+<main>
+<div id="status" class="status">Checking account access...</div>
+
+<section id="content" class="hidden">
+  <div class="grid">
+    <div class="stat">Saved Predictions<strong id="total">0</strong></div>
+    <div class="stat">Frozen Predictions<strong id="frozen">0</strong></div>
+    <div class="stat">Settled Predictions<strong id="settled">0</strong></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Upcoming NHL Games</h2>
+    <p>Live fixture integration is not yet connected.</p>
+    <button disabled>RUN NHL V1.0 PREDICTION</button>
+    <p class="muted">The original model calculations must be verified before simulation is enabled.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Saved NHL Predictions</h2>
+    <button id="refresh">Refresh Predictions</button>
+    <div id="predictions"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Model Performance</h2>
+    <p>BTTS 2+ accuracy, selection hit rates and ROI will appear once verified prediction results are stored and settled.</p>
+  </div>
+</section>
+</main>
+
+<script type="module">
+import {createClient} from
+'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const db=createClient(
+  'https://uvqbvqhkztdmdiayycuz.supabase.co',
+  'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS'
+);
+
+const $=id=>document.getElementById(id);
+const status=text=>$('status').textContent=text;
+
+function addText(parent,tag,value,className=''){
+  const el=document.createElement(tag);
+  el.textContent=value;
+  if(className)el.className=className;
+  parent.append(el);
+  return el;
+}
+
+function renderItems(parent,label,items){
+  if(!Array.isArray(items)||items.length===0)return;
+  addText(parent,'h3',label);
+  const list=document.createElement('ul');
+  for(const item of items){
+    const li=document.createElement('li');
+    li.textContent=typeof item==='string'
+      ?item
+      :JSON.stringify(item);
+    list.append(li);
+  }
+  parent.append(list);
+}
+
+async function loadPredictions(){
+  const {data,error}=await db.from('nhl_predictions')
+    .select('*')
+    .order('game_date',{ascending:false})
+    .limit(100);
+
+  if(error){status('Database error: '+error.message);return;}
+
+  const games=data||[];
+  $('total').textContent=games.length;
+  $('frozen').textContent=games.filter(x=>x.status==='frozen').length;
+  $('settled').textContent=games.filter(x=>x.status==='settled').length;
+
+  const root=$('predictions');
+  root.replaceChildren();
+
+  if(!games.length){
+    addText(root,'p','No NHL predictions saved yet.');
+    return;
+  }
+
+  for(const game of games){
+    const card=document.createElement('div');
+    card.className='game';
+    addText(card,'h3',game.away_team+' @ '+game.home_team);
+    addText(card,'p',new Date(game.game_date).toLocaleString('en-AU',{
+      timeZone:'Australia/Brisbane',
+      dateStyle:'medium',timeStyle:'short'
+    }));
+    addText(card,'span',game.status.toUpperCase(),'tag');
+
+    if(game.predicted_away_score!==null &&
+       game.predicted_home_score!==null){
+      addText(card,'div',
+        game.predicted_away_score+' – '+game.predicted_home_score,
+        'score');
+    }
+    if(game.predicted_winner){
+      addText(card,'p','Predicted winner: '+game.predicted_winner);
+    }
+
+    renderItems(card,'Ranked Selections',game.selections);
+    renderItems(card,'Multis',game.multis);
+    root.append(card);
+  }
+  status('NHL database connected.');
+}
+
+async function start(){
+  const {data:{user},error}=await db.auth.getUser();
+  if(error||!user){
+    status('Please log in through the main Prediction Hub first.');
+    return;
+  }
+
+  const {data:profile,error:profileError}=await db
+    .from('profiles')
+    .select('approved')
+    .eq('id',user.id)
+    .single();
+
+  if(profileError||!profile?.approved){
+    status('Access restricted. Administrator approval required.');
+    return;
+  }
+
+  $('content').classList.remove('hidden');
+  await loadPredictions();
+}
+
+$('refresh').onclick=loadPredictions;
+start();
+</script>
+</body>
+</html>
