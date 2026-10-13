@@ -318,8 +318,8 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
         <p class="overview-note" id="homeBetNote">Loading your recorded bets…</p>
       </section>
       <section class="home-predictions" aria-labelledby="top-predictions-title">
-        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top Model Predictions</h2><span class="prediction-kicker" id="predictionSourceLabel">TODAY + TOMORROW · AEST</span></div>
-        <p class="prediction-disclaimer">Automatically checks verified games today and tomorrow when you visit each day. Provisional, uncalibrated probabilities, not validated betting value. No automatic bet placement.</p>
+        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top 3 Model Predictions</h2><span class="prediction-kicker" id="predictionSourceLabel">TODAY + TOMORROW · AEST</span></div>
+        <p class="prediction-disclaimer">Ranks the three highest estimated selections across NHL, NFL, MLB and NBL for verified games today and tomorrow (Brisbane time). Sports can repeat when they rank highest. Provisional, uncalibrated probabilities, not validated betting value. No automatic bet placement.</p>
         <button type="button" id="refreshDailyPredictions" class="secondary daily-refresh">↻ Refresh Predictions</button><div id="topPredictions" class="prediction-list" aria-live="polite">Checking saved model predictions…</div>
         <div class="prediction-footer"><a href="./nhl.html">NHL</a><a href="./nfl.html">NFL</a><a href="./mlb.html">MLB</a><a href="./nbl.html">NBL</a></div>
       </section>
@@ -467,7 +467,7 @@ async function refreshDailyPredictions(user,force=false){
 function displayDailyPredictions(picks,time){
  const root=$('topPredictions');root.replaceChildren();
  const today=dailyDay(new Date()),tomorrow=dailyDay(new Date(Date.now()+86400000));
- const list=picks.filter(p=>[today,tomorrow].includes(dailyDay(new Date(p.date)))&&Date.parse(p.date)>Date.now()-3600000).sort((a,b)=>b.pct-a.pct).slice(0,5);
+ const list=picks.filter(p=>[today,tomorrow].includes(dailyDay(new Date(p.date)))&&Date.parse(p.date)>Date.now()-3600000).sort((a,b)=>b.pct-a.pct).slice(0,3);
  $('predictionSourceLabel').textContent=list.length?'UPDATED '+new Date(time).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',minute:'2-digit'}):'NO QUALIFYING BET';
  if(!list.length){root.textContent='No qualifying bet for verified games today or tomorrow. Try Refresh Predictions later.';return;}
  for(const p of list){const row=document.createElement('div');row.className='prediction-row';const left=document.createElement('div'),sport=document.createElement('span'),name=document.createElement('strong'),meta=document.createElement('small'),right=document.createElement('div'),pct=document.createElement('div'),link=document.createElement('a');sport.className='prediction-sport';sport.textContent=p.sport.toUpperCase()+' · PROVISIONAL';name.textContent=p.label;meta.textContent=p.event+' · '+new Date(p.date).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});pct.className='prediction-confidence';pct.textContent=p.pct.toFixed(1)+'%';link.href=fixturePaths[p.sport];link.textContent='OPEN MODEL →';left.append(sport,name,meta);right.append(pct,link);row.append(left,right);root.append(row);}
