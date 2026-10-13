@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 29 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 30 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -459,9 +459,27 @@ $('runPrediction').onclick=async()=>{
   const heading=document.createElement('h3');heading.textContent=p.away+' @ '+p.home+' — projected score '+p.away+' '+p.predicted_score.away+' : '+p.home+' '+p.predicted_score.home;root.append(heading);
   const details=document.createElement('p');details.textContent='Expected goals: '+p.away+' '+p.expected_goals.away+' · '+p.home+' '+p.expected_goals.home+'. Regulation win: '+p.away+' '+p.regulation.away_win+'% · '+p.home+' '+p.regulation.home_win+'% · tied after regulation '+p.regulation.tie+'%.';root.append(details);
   const table=document.createElement('table'),header=document.createElement('tr');
-  for(const title of ['Rank','Selection','Model-implied probability','Fair odds (not bookmaker)'])addText(header,'th',title);table.append(header);
-  for(const [i,m] of p.markets.entries()){const tr=document.createElement('tr');for(const v of [i+1,m.label,m.probability+'%',m.fair_odds])addText(tr,'td',String(v));table.append(tr);}
-  root.append(table);
+  for(const title of ['Select','Rank','Selection','Model-implied probability','Fair odds (not bookmaker)'])addText(header,'th',title);table.append(header);
+  const chosen=new Set();
+  const summary=document.createElement('div');summary.className='panel';summary.style.marginTop='14px';
+  const refresh=()=>{
+   summary.replaceChildren();
+   const picks=[...chosen].sort((a,b)=>a-b).map(i=>p.markets[i]);
+   const title=document.createElement('h3');title.textContent=picks.length===0?'Choose bets for a single or multi':picks.length===1?'Single selection':'Multi selection · '+picks.length+' legs';summary.append(title);
+   const line=document.createElement('p');line.textContent=picks.length?picks.map(x=>x.label).join(' + '):'Tick any selection below to build a bet slip.';summary.append(line);
+   if(picks.length===1){const m=picks[0],info=document.createElement('p');info.textContent='Model-implied probability '+m.probability+'% · model fair odds '+m.fair_odds+'.';summary.append(info);}
+   if(picks.length>1){const note=document.createElement('p');note.className='muted';note.textContent='Same-game markets can be correlated. Combined probability and fair odds are not calculated for arbitrary combinations. These are model estimates, not bookmaker odds.';summary.append(note);}
+   if(picks.length){const copy=document.createElement('button');copy.textContent='COPY '+(picks.length===1?'SINGLE':'MULTI')+' SELECTION';copy.onclick=async()=>{const slip=p.away+' @ '+p.home+' | '+picks.map(x=>x.label).join(' + ')+' | Provisional model; verify bookmaker markets and odds';try{await navigator.clipboard.writeText(slip);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};summary.append(copy);}
+  };
+  for(const [i,m] of p.markets.entries()){
+   const tr=document.createElement('tr'),cell=document.createElement('td'),check=document.createElement('input');
+   check.type='checkbox';check.setAttribute('aria-label','Select '+m.label);
+   check.onchange=()=>{if(check.checked)chosen.add(i);else chosen.delete(i);refresh();};
+   cell.append(check);tr.append(cell);
+   for(const v of [i+1,m.label,m.probability+'%',m.fair_odds])addText(tr,'td',String(v));
+   table.append(tr);
+  }
+  root.append(table,summary);refresh();
   const combo=document.createElement('p');combo.textContent='Correlated joint market (calculated together): '+p.combo.label+' — '+p.combo.probability+'%, model fair odds '+p.combo.fair_odds+'.';root.append(combo);
   const caveat=document.createElement('p');caveat.className='muted';caveat.textContent='Missing: '+p.missing.join(', ')+'. '+p.warning;root.append(caveat);
  }catch(e){out.textContent='Prediction unavailable: '+(e.message||String(e));}
