@@ -165,39 +165,45 @@ async function loadPredictions(){
 }
 
 async function start(){
-  status('Connecting to Supabase authentication...');
-  const timeout = (promise, label) => Promise.race([
-    promise,
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' timed out after 12 seconds')),12000))
-  ]);
-  try {
-  const {data:{user},error}=await timeout(db.auth.getUser(),'Authentication');
-  if(error||!user){
-    status('Please log in through the main Prediction Hub first.');
-    return;
-  }
-
-  status('Checking your approved member profile...');
-  const {data:profile,error:profileError}=await timeout(db
-    .from('profiles')
-    .select('approved')
-    .eq('id',user.id)
-    .single(),'Profile lookup');
-
-  if(profileError){
-    status('Profile lookup failed: '+profileError.message);
-    return;
-  }
-  if(!profile?.approved){
-    status('Access restricted. Administrator approval required.');
-    return;
-  }
-
-  $('content').classList.remove('hidden');
-  await timeout(loadPredictions(),'NHL predictions lookup');
-  } catch(e) {
+  const watchdog=setTimeout(()=>{
+    status('Profile check is taking too long. Supabase request may be blocked; please reload the page.');
+  },15000);
+  try{
+    status('Connecting to Supabase authentication...');
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError||!session?.access_token){
+      status('Please log in through the main Prediction Hub first.');
+      return;
+    }
+    status('Checking your approved member profile...');
+    const controller=new AbortController();
+    const abort=setTimeout(()=>controller.abort(),10000);
+    let response;
+    try{
+      response=await fetch(
+        'https://uvqbvqhkztdmdiayycuz.supabase.co/rest/v1/profiles?select=approved&id=eq.'+
+          encodeURIComponent(session.user.id),
+        {headers:{
+          apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',
+          Authorization:'Bearer '+session.access_token
+        },signal:controller.signal}
+      );
+    }finally{clearTimeout(abort);}
+    if(!response.ok){
+      status('Profile lookup failed (HTTP '+response.status+'): '+(await response.text()).slice(0,180));
+      return;
+    }
+    const profiles=await response.json();
+    if(!profiles[0]?.approved){
+      status('Access restricted. Administrator approval required.');
+      return;
+    }
+    $('content').classList.remove('hidden');
+    status('Approved member. Loading NHL predictions...');
+    await loadPredictions();
+  }catch(e){
     status('NHL connection error: '+(e?.message||String(e)));
-  }
+  }finally{clearTimeout(watchdog);}
 }
 
 $('refresh').onclick=loadPredictions;
