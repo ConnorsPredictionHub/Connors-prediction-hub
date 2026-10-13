@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bet Tracker | Connor's Prediction Hub</title><style>*{box-sizing:border-box}body{margin:0;background:#0b1220;color:#eaf1ff;font:16px system-ui,Arial}header{padding:22px;background:#121e32}main{max-width:1050px;margin:24px auto;padding:0 16px}.panel{background:#142239;border:1px solid #30435d;border-radius:14px;padding:20px;margin:16px 0}a{color:#66c2ff}p,small{color:#a9bad1}label{display:block;margin:12px 0}input,textarea,select{width:100%;background:#0b1526;color:white;border:1px solid #40536d;border-radius:8px;padding:11px;font:inherit;margin-top:6px}button{background:#36a5ee;border:0;border-radius:8px;padding:12px;font-weight:700;cursor:pointer;margin:5px 5px 5px 0}button:disabled{opacity:.5}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.stat{background:#1b2e49;border-radius:10px;padding:14px}.stat strong{display:block;font-size:23px}.entry{border-top:1px solid #30435d;padding:15px 0;overflow-wrap:anywhere}.tag{color:#9acbff;font-size:13px}.muted{color:#a9bad1}h1{margin-bottom:4px}</style></head><body><header><a href="./index.html">← Prediction Hub</a><h1>Bet Tracker</h1><p>All six sports · Singles and multis · Settled results · Profit and loss</p></header><main><div id="status" class="panel">Checking account access...</div><section id="app" hidden><div class="grid"><div class="stat">Recorded bets<strong id="count">0</strong></div><div class="stat">Pending<strong id="pending">0</strong></div><div class="stat">Settled win rate<strong id="hit">—</strong></div><div class="stat">Net profit / loss<strong id="profit">—</strong></div></div><div class="panel"><h2>Record a bet</h2><p>Only record bets you actually placed. Use the bookmaker's accepted odds and your real stake; leave blank if unknown.</p><div class="grid"><label>Sport<select id="sport"><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><label>Bet type<select id="type"><option value="single">Single</option><option value="multi">Multi</option></select></label><label>Stake (AUD, optional)<input id="stake" type="number" step="0.01" min="0.01" placeholder="5.00"></label><label>Accepted decimal odds (optional)<input id="odds" type="number" step="0.001" min="1.001" placeholder="1.75"></label></div><label>Selections — one leg per line<textarea id="legs" rows="5" placeholder="Team A 2+ goals&#10;Match over 4.5 goals"></textarea></label><label>Notes (optional)<textarea id="notes" rows="2"></textarea></label><button id="save">RECORD BET AS PENDING</button><p id="saveMessage" role="status"></p></div><div class="panel"><h2>My tracked bets</h2><label>Filter sport<select id="filter"><option value="all">All sports</option><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><p class="muted">Settle only when you know the official outcome. Returns are gross amounts received, including stake. For void bets, use the returned stake.</p><div id="history">Loading...</div></div></section></main><script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const db=createClient('https://uvqbvqhkztdmdiayycuz.supabase.co','sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS');
+const $=id=>document.getElementById(id);let userId,records=[];
+const money=n=>'AUD $'+Number(n).toFixed(2);
+function el(tag,txt){const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;return x;}
+function refresh(){
+ const subset=records.filter(p=>$('filter').value==='all'||p.sport===$('filter').value);
+ const settled=subset.filter(p=>p.status!=='pending'),known=settled.filter(p=>p.stake!==null&&p.settled_return!==null);
+ $('count').textContent=subset.length;$('pending').textContent=subset.filter(p=>p.status==='pending').length;
+ $('hit').textContent=settled.length?(100*settled.filter(p=>p.status==='won').length/settled.length).toFixed(1)+'%':'—';
+ $('profit').textContent=known.length?money(known.reduce((s,p)=>s+Number(p.settled_return)-Number(p.stake),0)):'—';
+ const root=$('history');root.replaceChildren();
+ if(!subset.length){root.textContent='No bets recorded for this sport.';return;}
+ for(const p of subset){
+  const item=el('div');item.className='entry';
+  const title=el('h3',p.sport.toUpperCase()+' · '+p.bet_type.toUpperCase()+' · '+p.status.toUpperCase());item.append(title);
+  const legs=el('p',p.legs.map((x,i)=>(i+1)+'. '+x).join('\n'));legs.style.whiteSpace='pre-wrap';item.append(legs);
+  item.append(el('p','Placed: '+new Date(p.placed_at).toLocaleString('en-AU')+' · Stake: '+(p.stake===null?'not recorded':money(p.stake))+' · Accepted odds: '+(p.decimal_odds===null?'not recorded':p.decimal_odds)));
+  if(p.notes)item.append(el('p',p.notes));
+  if(p.status==='pending'){
+   const label=el('label','Settle outcome');const select=el('select');
+   for(const s of ['won','lost','void']){const opt=el('option',s.toUpperCase());opt.value=s;select.append(opt);}
+   label.append(select);item.append(label);
+   const retlabel=el('label','Gross return received (AUD)');const ret=el('input');ret.type='number';ret.min='0';ret.step='0.01';ret.placeholder='Enter actual return';retlabel.append(ret);item.append(retlabel);
+   const button=el('button','SETTLE BET'),msg=el('p');item.append(button,msg);
+   button.onclick=async()=>{
+    const status=select.value,amount=ret.value.trim();
+    if(!amount&&!confirm('Return not entered. Settle without a profit/loss calculation?'))return;
+    const returned=amount?Number(amount):null;
+    if(returned!==null&&(!Number.isFinite(returned)||returned<0)){msg.textContent='Enter a valid gross return.';return;}
+    if(!confirm('Confirm this bet is '+status.toUpperCase()+'?'))return;
+    button.disabled=true;
+    const {error}=await db.from('bet_tracker').update({status,settled_return:returned,settled_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',userId).eq('status','pending');
+    if(error){msg.textContent='Settlement failed: '+error.message;button.disabled=false;}else await load();
+   };
+  }else{
+   item.append(el('p','Gross return: '+(p.settled_return===null?'not recorded':money(p.settled_return))+' · Net: '+(p.stake!==null&&p.settled_return!==null?money(Number(p.settled_return)-Number(p.stake)):'not available')));
+  }
+  root.append(item);
+ }
+}
+async function load(){
+ const {data,error}=await db.from('bet_tracker').select('*').eq('user_id',userId).order('placed_at',{ascending:false}).limit(500);
+ if(error){$('history').textContent='Unable to load bets: '+error.message;return;}
+ records=data||[];refresh();
+}
+$('filter').onchange=refresh;
+$('save').onclick=async()=>{
+ const legs=$('legs').value.split('\n').map(x=>x.trim()).filter(Boolean),type=$('type').value;
+ if((type==='single'&&legs.length!==1)||(type==='multi'&&legs.length<2)){$('saveMessage').textContent='Singles require exactly one selection; multis require two or more.';return;}
+ const stake=$('stake').value.trim()?Number($('stake').value):null,decimal_odds=$('odds').value.trim()?Number($('odds').value):null;
+ if((stake!==null&&(!Number.isFinite(stake)||stake<=0))||(decimal_odds!==null&&(!Number.isFinite(decimal_odds)||decimal_odds<=1))){$('saveMessage').textContent='Enter valid stake and accepted odds.';return;}
+ if(!confirm('Record this as an actual placed bet?'))return;
+ $('save').disabled=true;$('saveMessage').textContent='Saving...';
+ const {error}=await db.from('bet_tracker').insert({user_id:userId,sport:$('sport').value,bet_type:type,legs,stake,decimal_odds,notes:$('notes').value.trim()||null});
+ $('save').disabled=false;$('saveMessage').textContent=error?'Could not record bet: '+error.message:'Bet recorded as pending.';
+ if(!error){$('legs').value='';$('notes').value='';await load();}
+};
+async function start(){
+ try{
+ const {data:{session}}=await db.auth.getSession();
+ if(!session?.user){$('status').textContent='Sign in on the main Prediction Hub first.';return;}
+ userId=session.user.id;
+ const {data:profile,error}=await db.from('profiles').select('approved').eq('id',userId).single();
+ if(error||!profile?.approved){$('status').textContent='Approved account required.';return;}
+ $('app').hidden=false;$('status').textContent='Signed in · Your recorded bets are private.';await load();
+ }catch(e){$('status').textContent='Connection error: '+e.message;}
+}
+start();
+</script></body></html>
