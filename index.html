@@ -450,7 +450,7 @@ async function refreshDailyPredictions(user,force=false){
    const j=await r.json();return (j.games||[]).map(g=>({sport,date:sport==='nhl'?g.startTimeUTC:g.date,home:sport==='nhl'?g.homeTeam?.abbrev:g.home,away:sport==='nhl'?g.awayTeam?.abbrev:g.away,homeCode:g.home_abbrev,awayCode:g.away_abbrev})).filter(g=>g.home&&g.away&&g.date&&[today,tomorrow].includes(dailyDay(new Date(g.date)))&&Date.parse(g.date)>Date.now()-3600000);
   }));
   if(feeds.every(x=>x.status==='rejected'))throw Error('Fixture services unavailable');
-  const games=feeds.filter(x=>x.status==='fulfilled').flatMap(x=>x.value).slice(0,16);
+  const games=feeds.filter(x=>x.status==='fulfilled').flatMap(x=>x.value.slice(0,16));
   const results=await Promise.allSettled(games.map(async g=>{
    const r=await fetch(base+models[g.sport],{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({home:g.homeCode||g.home,away:g.awayCode||g.away}),signal:AbortSignal.timeout(23000)});
    if(!r.ok)throw Error('Prediction model unavailable');
