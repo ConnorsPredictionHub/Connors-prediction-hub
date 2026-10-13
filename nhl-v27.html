@@ -1,0 +1,525 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NHL V1.0 | Connor's Prediction Hub</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1220;color:#eaf1ff;font-family:system-ui,Arial,sans-serif}
+header{padding:22px;background:#121e32;border-bottom:1px solid #30435d}
+main{max-width:1050px;margin:28px auto;padding:0 16px}
+h1{margin:0;font-size:26px}
+h2{font-size:20px}
+p,.muted{color:#a9bad1}
+a{color:#66c2ff}
+.panel{background:#142239;border:1px solid #30435d;border-radius:14px;padding:20px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.stat{background:#1b2e49;padding:20px;border-radius:12px}
+.stat strong{font-size:28px;display:block;margin-top:8px}
+button{background:#36a5ee;color:#071322;border:0;border-radius:8px;padding:12px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.status{padding:14px;background:#243951;border-radius:8px;margin-bottom:18px}
+.game{border-top:1px solid #34465f;padding:18px 0}
+.score{font-size:23px;font-weight:bold}
+.tag{display:inline-block;background:#30435d;padding:5px 10px;border-radius:6px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #34465f}
+th{color:#a9bad1}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <a href="./index.html">← Prediction Hub</a>
+  <h1>🏒 NHL Prediction Model V1.0</h1>
+  <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
+</header>
+<main>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 27 · 13 October 2026</div>
+<div id="status" class="status" role="status">Checking account access...</div>
+
+
+<section id="content" class="hidden">
+  <div class="grid">
+    <div class="stat">Saved Predictions<strong id="total">0</strong></div>
+    <div class="stat">Frozen Predictions<strong id="frozen">0</strong></div>
+    <div class="stat">Settled Predictions<strong id="settled">0</strong></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Upcoming NHL Games</h2>
+    <p class="muted">Official NHL schedule · Upcoming fixtures shown in Australian Eastern time.</p>
+    <p id="fixtureStatus" class="muted">Loading official NHL fixtures...</p>
+    <label for="gameSelect">Select upcoming game</label>
+    <select id="gameSelect" style="display:block;width:100%;max-width:650px;margin:10px 0 16px;padding:12px;background:#1b2e49;color:#fff;border:1px solid #49627d;border-radius:8px"><option value="">Loading games...</option></select>
+    <button id="runPrediction" disabled>PREPARE NHL V1.0 PREDICTION</button>
+    <p id="prepared" class="muted" role="status"></p>
+    <div class="panel" style="margin-top:18px;background:#182a43">
+      <h3>Save your NHL V1.0 prediction</h3>
+      <p class="muted">Run the research in ChatGPT first, then enter the confirmed output here. Only you can view the predictions saved to your account.</p>
+      <div class="grid">
+        <label>Away predicted goals<input id="awayGoals" type="number" min="0" max="20" step="1" placeholder="e.g. 4" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+        <label>Home predicted goals<input id="homeGoals" type="number" min="0" max="20" step="1" placeholder="e.g. 2" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+      </div>
+      <label style="display:block;margin-top:12px">Ranked selections (one per line)<textarea id="selectionsInput" rows="5" style="display:block;width:100%;padding:10px;margin-top:6px" placeholder="Carolina over 1.5 team goals"></textarea></label>
+      <label style="display:block;margin-top:12px">Multis (one per line)<textarea id="multisInput" rows="3" style="display:block;width:100%;padding:10px;margin-top:6px" placeholder="Carolina over 1.5 + match over 3.5"></textarea></label>
+      <label style="display:block;margin:14px 0"><input type="checkbox" id="freezePrediction"> I explicitly confirm these are the final pregame NHL V1.0 selections and want to freeze them.</label>
+      <button id="savePrediction" disabled>SAVE PREDICTION</button>
+      <p id="saveStatus" class="muted" role="status"></p>
+    </div>
+    <p class="muted">Prepares a verified-fixture research request for ChatGPT. Automated NHL V1.0 calculations are not yet implemented; no simulated results are fabricated.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Historical NHL results · Research database</h2>
+    <p class="muted">The dashboard automatically retrieves and stores official historical NHL regular-season results for research. The first import can take a little time. Historical goals are not 5v5 expected goals.</p>
+    <div class="grid" style="display:none">
+      <label>Team abbreviation<input id="historyTeam" value="TOR" maxlength="3" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+      <label>Completed season<select id="historySeason" style="display:block;width:100%;padding:10px;margin-top:6px"><option value="20252026">2025–26</option><option value="20242025">2024–25</option><option value="20232024">2023–24</option></select></label>
+    </div>
+    <button id="importHistory" style="display:none">IMPORT OFFICIAL HISTORICAL GAMES (ADMIN)</button>
+    <button id="viewHistory" style="display:none">VIEW HISTORICAL SUMMARY</button>
+    <p id="historyStatus" class="muted" role="status"></p>
+    <div id="historyResults"></div>
+  </div>
+  <div class="panel">
+    <h2>Opponent-adjusted historical team ratings</h2>
+    <p class="muted">Full-season official final scores. Attack is adjusted for opponents' average goals conceded; defense is adjusted for opponents' average goals scored. Higher attack and lower defense are better. Goal rating = adjusted attack minus adjusted defense. These are descriptive goal-based ratings, NOT NHL V1.0 5v5 xG, goalie or overall model scores.</p>
+    <label>Historical season <select id="ratingSeason"><option value="20252026">2025–26</option><option value="20242025">2024–25</option></select></label>
+    <p id="ratingStatus" class="muted">Ratings load automatically after login.</p>
+    <div id="ratingResults" style="overflow-x:auto"></div>
+  </div>
+  <div class="panel">
+    <h2>Official NHL advanced research · Special teams</h2>
+    <p class="muted">NHL Stats REST reports load automatically. Power play, penalty kill and team summary are verified source datasets; 5v5 xG, goals saved above expected and confirmed starting goalies are not supplied by these reports. The locked NHL V1.0 weights are unchanged.</p>
+    <p id="advancedStatus" class="muted">Research data loads automatically after login.</p>
+    <div id="advancedResults" style="overflow-x:auto"></div>
+  </div>
+  <div class="panel">
+    <h2>Verified NHL scoring baselines</h2>
+    <p class="muted">Live official NHL standings: games played, goals scored and conceded. These are all-strength descriptive statistics, not the 12-component model, opponent-adjusted xG or calibrated predictions.</p>
+    <button id="loadBaselines">LOAD VERIFIED NHL TEAM DATA</button>
+    <p id="baselineStatus" class="muted" role="status"></p>
+    <div id="baselineData"></div>
+  </div>
+  <div class="panel">
+    <h2>NHL V1.0 · Provisional probability calculator</h2>
+    <p class="muted">Enter independently researched expected goals for the selected home and away teams. This is a Poisson calculation tool, NOT a fully calibrated 12-factor model or a verified prediction. No simulation or odds lookup is performed.</p>
+    <div class="grid">
+      <label>Home expected goals (λ)<input id="lambdaHome" type="number" min="0.01" max="10" step="0.01" placeholder="Researched λ" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+      <label>Away expected goals (λ)<input id="lambdaAway" type="number" min="0.01" max="10" step="0.01" placeholder="Researched λ" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+    </div>
+    <button id="calculateProbabilities">CALCULATE PROVISIONAL PROBABILITIES</button>
+    <p id="calculatorStatus" class="muted" role="status"></p>
+    <div id="calculatorResults"></div>
+  </div>
+  <div class="panel">
+    <h2>My Saved NHL Predictions</h2>
+    <button id="refresh">Refresh Predictions</button>
+    <div id="predictions"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Model Performance</h2>
+    <p>BTTS 2+ accuracy, selection hit rates and ROI will appear once verified prediction results are stored and settled.</p>
+  </div>
+</section>
+</main>
+
+
+<script>
+(function(){
+ const node=document.getElementById('status');
+ node.textContent='Build 21 loaded. Starting authentication module...';
+ window.addEventListener('error',function(e){
+  node.textContent='NHL startup error: '+(e.message||'Script loading error')+'. Try reloading the page.';
+ });
+ window.addEventListener('unhandledrejection',function(e){
+  node.textContent='NHL startup failed: '+String(e.reason?.message||e.reason||'Unknown error');
+ });
+ setTimeout(function(){
+  if(node.textContent.includes('Starting authentication module')||node.textContent.includes('Checking account access')){
+   node.textContent='NHL startup timed out before authentication. Safari may be blocking the Supabase JavaScript library. Please report this exact message.';
+  }
+ },8000);
+})();
+</script>
+<script type="module">
+import {createClient} from
+'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const db=createClient(
+  'https://uvqbvqhkztdmdiayycuz.supabase.co',
+  'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS'
+);
+
+const $=id=>document.getElementById(id);
+const status=text=>{$('status').textContent=text;};
+
+function addText(parent,tag,value,className=''){
+  const el=document.createElement(tag);
+  el.textContent=value;
+  if(className)el.className=className;
+  parent.append(el);
+  return el;
+}
+
+function renderItems(parent,label,items){
+  if(!Array.isArray(items)||items.length===0)return;
+  addText(parent,'h3',label);
+  const list=document.createElement('ul');
+  for(const item of items){
+    const li=document.createElement('li');
+    li.textContent=typeof item==='string'
+      ?item
+      :JSON.stringify(item);
+    list.append(li);
+  }
+  parent.append(list);
+}
+
+async function loadPredictions(){
+  status('Loading saved NHL predictions...');
+  const {data,error}=await db.from('nhl_predictions')
+    .select('*')
+    .eq('user_id',signedInUserId)
+    .order('game_date',{ascending:false})
+    .limit(100);
+
+  if(error){status('Database error: '+error.message);return;}
+
+  const games=data||[];
+  $('total').textContent=games.length;
+  $('frozen').textContent=games.filter(x=>x.status==='frozen').length;
+  $('settled').textContent=games.filter(x=>x.status==='settled').length;
+
+  const root=$('predictions');
+  root.replaceChildren();
+
+  if(!games.length){
+    addText(root,'p','No NHL predictions saved yet.');
+    status('NHL dashboard connected. No predictions saved yet.');
+    return;
+  }
+
+  for(const game of games){
+    const card=document.createElement('div');
+    card.className='game';
+    addText(card,'h3',game.away_team+' @ '+game.home_team);
+    addText(card,'p',new Date(game.game_date).toLocaleString('en-AU',{
+      timeZone:'Australia/Brisbane',
+      dateStyle:'medium',timeStyle:'short'
+    }));
+    addText(card,'span',game.status.toUpperCase(),'tag');
+
+    if(game.predicted_away_score!==null &&
+       game.predicted_home_score!==null){
+      addText(card,'div',
+        game.predicted_away_score+' – '+game.predicted_home_score,
+        'score');
+    }
+    if(game.predicted_winner){
+      addText(card,'p','Predicted winner: '+game.predicted_winner);
+    }
+
+    renderItems(card,'Ranked Selections',game.selections);
+    renderItems(card,'Multis',game.multis);
+    root.append(card);
+  }
+  status('NHL database connected.');
+}
+
+let upcomingGames=[];
+let signedInUserId=null;
+async function loadFixtures(){
+ const label=$('fixtureStatus'),select=$('gameSelect'),button=$('runPrediction');
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),10000);
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw new Error('Sign in again on the main page');
+  const response=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-fixtures',{signal:controller.signal,headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token}});
+  const payload=await response.json();
+  if(!response.ok)throw new Error('Fixture service HTTP '+response.status+': '+(payload.error||'Unknown error'));
+  const now=Date.now();
+  if(payload.error)throw new Error(payload.error);
+  const games=payload.games||[];
+  upcomingGames=games.filter(g=>g.startTimeUTC&&Date.parse(g.startTimeUTC)>now&&g.awayTeam&&g.homeTeam)
+    .sort((a,b)=>Date.parse(a.startTimeUTC)-Date.parse(b.startTimeUTC));
+  select.replaceChildren();
+  if(!upcomingGames.length){
+   select.add(new Option('No upcoming games in the current NHL schedule window',''));
+   label.textContent='No future fixtures returned for the current NHL schedule window.';
+   return;
+  }
+  for(const g of upcomingGames){
+   const away=g.awayTeam.placeName?.default||g.awayTeam.abbrev||'Away';
+   const home=g.homeTeam.placeName?.default||g.homeTeam.abbrev||'Home';
+   const date=new Date(g.startTimeUTC).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'});
+   select.add(new Option(away+' @ '+home+' — '+date,String(g.id)));
+  }
+  label.textContent=upcomingGames.length+' upcoming fixtures from the official NHL schedule.';
+  button.disabled=false;
+  $('savePrediction').disabled=false;
+ }catch(error){
+  label.textContent='Could not load official NHL fixtures: '+error.message+'. Please try refreshing.';
+  select.replaceChildren();select.add(new Option('Schedule unavailable',''));
+ }finally{clearTimeout(timeout);}
+}
+async function historyRequest(method,body){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session?.access_token)throw Error('Sign in required');
+ const r=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-historical-import',{
+ method,headers:{'Content-Type':'application/json',apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},
+ ...(body?{body:JSON.stringify(body)}:{})
+ });
+ const p=await r.json();if(!r.ok)throw Error(p.error||'Historical service unavailable');return p;
+}
+$('importHistory').onclick=async()=>{
+ const button=$('importHistory'),out=$('historyStatus');
+ button.disabled=true;out.textContent='Importing official season schedule...';
+ try{
+  const p=await historyRequest('POST',{team:$('historyTeam').value.trim().toUpperCase(),season:Number($('historySeason').value)});
+  out.textContent='Imported '+p.imported+' completed games for '+p.team+' '+p.season+'. Duplicates safely merged.';
+  $('viewHistory').click();
+ }catch(e){out.textContent='Import unavailable: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+};
+$('viewHistory').onclick=async()=>{
+ const out=$('historyStatus'),root=$('historyResults');root.replaceChildren();out.textContent='Loading stored history...';
+ try{
+  const {data:summary,error:summaryError}=await db.rpc('nhl_historical_summary');
+  if(summaryError)throw Error(summaryError.message);
+  const p={season_summary:(summary||[]).map(s=>({season:s.season,games_in_sample:Number(s.games),goals_per_team_game:Number(s.goals_per_team_game)})),stored_games_sample:(summary||[]).reduce((n,s)=>n+Number(s.games),0)};
+  out.textContent='Official historical games stored: '+p.stored_games_sample+'. Historical goal averages are descriptive, not calibrated expected goals.';
+  const table=document.createElement('table'),head=document.createElement('tr');
+  for(const h of ['Season','Games sampled','Goals / team / game'])addText(head,'th',h);table.append(head);
+  for(const s of p.season_summary){const tr=document.createElement('tr');for(const v of [s.season,String(s.games_in_sample),s.goals_per_team_game.toFixed(3)])addText(tr,'td',v);table.append(tr);}
+  root.append(table);
+ }catch(e){out.textContent='Historical summary unavailable: '+(e.message||String(e));}
+};
+async function loadAdvancedResearch(){
+ const out=$('advancedStatus'),root=$('advancedResults');root.replaceChildren();
+ out.textContent='Retrieving NHL official special-teams and team reports...';
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw Error('Sign in required');
+  const season=Number($('ratingSeason').value);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+  let response;try{response=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-advanced-research?season='+season,{headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},signal:controller.signal});}finally{clearTimeout(timer);}
+  const result=await response.json();if(!response.ok)throw Error(result.error||'HTTP '+response.status);
+  const reports=result.reports||{},statuses=[];
+  for(const [name,report] of Object.entries(reports)){
+   const heading=document.createElement('h3');heading.textContent=name==='powerplay'?'Power play':name==='penaltykill'?'Penalty kill':'Team summary';root.append(heading);
+   if(!report.verified){const p=document.createElement('p');p.textContent='Not available: '+(report.error||'Unknown error');root.append(p);statuses.push(name+' unavailable');continue;}
+   statuses.push(name+': '+report.count+' team records');
+   const rows=report.rows||[],table=document.createElement('table');
+   const fields=name==='powerplay'?['teamFullName','teamName','powerPlayPct','ppPct','powerPlayGoals','powerPlayOpportunities']:name==='penaltykill'?['teamFullName','teamName','penaltyKillPct','pkPct','timesShortHanded','powerPlayGoalsAgainst']:['teamFullName','teamName','wins','losses','otLosses','goalsFor','goalsAgainst'];
+   const available=fields.filter(k=>rows.some(r=>r[k]!==undefined));
+   if(!available.length){const p=document.createElement('p');p.textContent='Verified '+rows.length+' rows. NHL report columns: '+Object.keys(rows[0]||{}).slice(0,18).join(', ');root.append(p);continue;}
+   const h=document.createElement('tr');for(const field of available)addText(h,'th',field);table.append(h);
+   for(const r of rows){const tr=document.createElement('tr');for(const field of available)addText(tr,'td',String(r[field]??'—'));table.append(tr);}root.append(table);
+  }
+  out.textContent='NHL official '+season+' reports: '+statuses.join(' · ')+'. Not yet incorporated into calibrated V1.0 scores.';
+ }catch(e){out.textContent='Official advanced research unavailable: '+(e.message||String(e));}
+}
+async function loadHistoricalRatings(){
+ const out=$('ratingStatus'),root=$('ratingResults');root.replaceChildren();out.textContent='Loading opponent-adjusted ratings...';
+ try{
+  const {data,error}=await db.rpc('nhl_team_historical_ratings',{p_season:Number($('ratingSeason').value)});
+  if(error)throw Error(error.message);
+  out.textContent=(data||[]).length+' teams rated from official historical final scores. NHL V1.0 model remains unchanged.';
+  const table=document.createElement('table'),head=document.createElement('tr');
+  for(const h of ['Team','GP','W','L*','GF/G','GA/G','Home W/GP','Away W/GP','Adj attack','Adj defense','Goal rating'])addText(head,'th',h);
+  table.append(head);
+  for(const r of data||[]){
+   const tr=document.createElement('tr');
+   for(const v of [r.team,r.games,r.wins,r.losses,r.gf_per_game,r.ga_per_game,r.home_wins+'/'+r.home_games,r.away_wins+'/'+r.away_games,r.adjusted_attack,r.adjusted_defense,r.goal_rating])addText(tr,'td',String(v??'—'));
+   table.append(tr);
+  }
+  root.append(table);
+  const note=document.createElement('p');note.className='muted';note.textContent='*L includes all non-winning games, including overtime/shootout losses. Final-score data cannot reliably separate regulation and overtime losses. Opponent adjustment uses full-season opponent averages, not leave-one-out or time-decayed estimates.';root.append(note);
+ }catch(e){out.textContent='Historical ratings unavailable: '+(e.message||String(e));}
+}
+$('ratingSeason').onchange=()=>{loadHistoricalRatings();loadAdvancedResearch();};
+async function autoPopulateHistory(){
+ const out=$('historyStatus');
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)return;
+  const {data:profile}=await db.from('profiles').select('role').eq('id',session.user.id).single();
+  if(profile?.role!=='admin'){out.textContent='Historical research data is maintained automatically by the administrator.';$('viewHistory').click();return;}
+  out.textContent='Automatically collecting official historical NHL results (2024–25 and 2025–26)...';
+  for(const season of [20242025,20252026]){
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),55000);
+   try{
+    const response=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-auto-history?season='+season,{
+     headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},
+     signal:controller.signal
+    });
+    const result=await response.json();if(!response.ok)throw Error(result.error||'Import HTTP '+response.status);
+    out.textContent='Season '+season+': '+result.stored_games+' official games stored. '+(result.failed_teams?.length?'Some team schedules need retry.':'');
+   }catch(e){out.textContent='Automatic history import needs retry: '+(e.message||String(e));break;}
+   finally{clearTimeout(timer);}
+  }
+  await $('viewHistory').click();
+ }catch(e){out.textContent='Historical data unavailable: '+(e.message||String(e));}
+}
+$('loadBaselines').onclick=async()=>{
+ const out=$('baselineStatus'),root=$('baselineData'),button=$('loadBaselines');
+ root.replaceChildren();button.disabled=true;out.textContent='Loading official NHL standings...';
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw Error('Sign in required');
+  const r=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-team-baselines',{headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token}});
+  const p=await r.json();if(!r.ok)throw Error(p.error||'Standings unavailable');
+  const fmt=v=>Number.isFinite(v)?v.toFixed(2):'Unavailable';
+  out.textContent='Official NHL standings retrieved '+new Date(p.retrieved_at).toLocaleString('en-AU')+'. League goals per team-game: '+fmt(p.league_baseline.goals_per_team_game)+'.';
+  const table=document.createElement('table'),head=document.createElement('tr');
+  for(const h of ['Team','GP','GF/GP','GA/GP'])addText(head,'th',h);
+  table.append(head);
+  for(const t of p.teams){const tr=document.createElement('tr');for(const v of [t.name||t.abbreviation,String(t.games_played),fmt(t.goals_for_per_game),fmt(t.goals_against_per_game)])addText(tr,'td',v);table.append(tr);}
+  root.append(table);
+  addText(root,'p','Research gaps: '+p.missing.join('; ')+'. These statistics are NOT automatic expected-goal inputs.','muted');
+ }catch(e){out.textContent='Data unavailable: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+};
+$('calculateProbabilities').onclick=async()=>{
+ const out=$('calculatorStatus'),root=$('calculatorResults'),btn=$('calculateProbabilities');
+ root.replaceChildren();
+ const home=$('lambdaHome').value,away=$('lambdaAway').value;
+ if(!home||!away){out.textContent='Enter both independently researched expected-goal values.';return;}
+ btn.disabled=true;out.textContent='Calculating provisional probabilities...';
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw new Error('Sign in required');
+  const res=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-provisional-probabilities',{
+   method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},
+   body:JSON.stringify({lambda_home:Number(home),lambda_away:Number(away)})
+  });
+  const p=await res.json();if(!res.ok)throw new Error(p.error||'Calculation unavailable');
+  const pct=v=>(v*100).toFixed(1)+'%';
+  const items=[
+   ['Most likely exact score (home–away)',p.most_likely_exact_score.home+'–'+p.most_likely_exact_score.away+' ('+pct(p.most_likely_exact_score.p)+')'],
+   ['Home regulation win',pct(p.regulation_win.home)],['Away regulation win',pct(p.regulation_win.away)],['Regulation tie',pct(p.regulation_win.tie)],
+   ['BTTS 2+ goals',pct(p.btts_2plus)],
+   ['Home 2+ goals',pct(p.team_totals.home_2plus)],['Away 2+ goals',pct(p.team_totals.away_2plus)],
+   ['Over 4.5 goals (regulation)',pct(p.game_totals['over_4.5'])],
+   ['Joint BTTS 2+ AND Over 4.5',pct(p.example_joint_multi.probability)+' · fair odds '+p.example_joint_multi.fair_decimal_odds.toFixed(2)]
+  ];
+  const table=document.createElement('table');
+  for(const [label,value] of items){const tr=document.createElement('tr');addText(tr,'td',label);addText(tr,'td',value);table.append(tr);}
+  root.append(table);
+  out.textContent='PROVISIONAL · Independent Poisson · User-supplied λ · Regulation only · Not calibrated. No bookmaker prices verified.';
+ }catch(e){out.textContent='Calculation failed: '+(e.message||String(e));}
+ finally{btn.disabled=false;}
+};
+$('savePrediction').onclick=async()=>{
+ const out=$('saveStatus'),button=$('savePrediction');
+ const game=upcomingGames.find(g=>String(g.id)===$('gameSelect').value);
+ if(!game){out.textContent='Choose an upcoming fixture.';return;}
+ const awayRaw=$('awayGoals').value,homeRaw=$('homeGoals').value;
+ if(awayRaw===''||homeRaw===''){out.textContent='Enter both predicted goal totals.';return;}
+ const away=Number(awayRaw),home=Number(homeRaw);
+ if(!Number.isInteger(away)||!Number.isInteger(home)||away<0||home<0||away>20||home>20){out.textContent='Enter valid whole-number scores.';return;}
+ const selections=$('selectionsInput').value.split('\n').map(s=>s.trim()).filter(Boolean);
+ const multis=$('multisInput').value.split('\n').map(s=>s.trim()).filter(Boolean);
+ if(!selections.length){out.textContent='Enter at least one researched selection.';return;}
+ const frozen=$('freezePrediction').checked;
+ if(frozen&&!confirm('Freeze this NHL V1.0 prediction? It will be stored as a confirmed pregame prediction.'))return;
+ const awayName=game.awayTeam.placeName?.default||game.awayTeam.abbrev;
+ const homeName=game.homeTeam.placeName?.default||game.homeTeam.abbrev;
+ if(!signedInUserId){out.textContent='Please sign in again.';return;}
+ const record={user_id:signedInUserId,game_date:game.startTimeUTC,away_team:awayName,home_team:homeName,predicted_away_score:away,predicted_home_score:home,predicted_winner:away>home?awayName:home>away?homeName:null,selections,multis,model_version:'NHL V1.0',status:frozen?'frozen':'draft'};
+ button.disabled=true;out.textContent='Saving prediction...';
+ try{
+  const {error}=await db.from('nhl_predictions').insert(record);
+  if(error)throw error;
+  out.textContent=frozen?'Confirmed prediction frozen and saved.':'Draft prediction saved.';
+  $('freezePrediction').checked=false;
+  await loadPredictions();
+ }catch(e){out.textContent='Save failed: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+};
+$('runPrediction').onclick=async()=>{
+ const game=upcomingGames.find(g=>String(g.id)===$('gameSelect').value);
+ if(!game)return;
+ const away=game.awayTeam.placeName?.default||game.awayTeam.abbrev;
+ const home=game.homeTeam.placeName?.default||game.homeTeam.abbrev;
+ const date=new Date(game.startTimeUTC).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'full',timeStyle:'short'});
+ const prompt='RUN NHL V1.0 FULL PREDICTION AND SIMULATION for '+away+' @ '+home+', Australian match date/time '+date+'. Research verified teams, form, injuries, projected/confirmed goalies, scoring, rest, markets and odds. Preserve my locked NHL V1.0 model methodology. Show predicted score, ranked safer selections, BTTS 2+ picks, two correlated multis, and confidence caveats. Do not invent unavailable metrics or freeze results without confirmation.';
+ try{
+  await navigator.clipboard.writeText(prompt);
+  $('prepared').textContent='Research request copied. Paste it into your NHL V1.0 ChatGPT prediction chat to run the model.';
+ }catch(error){
+  $('prepared').textContent='Copy blocked by browser. Select and copy the request below:';
+  const area=document.createElement('textarea');area.value=prompt;area.rows=6;area.style.width='100%';
+  $('prepared').after(area);area.select();
+ }
+};
+async function start(){
+  let phase='Starting';
+  const watchdog=setInterval(()=>{
+    // Connection watchdog runs independently of the fixture schedule.
+  },500);
+  const failTimer=setTimeout(()=>{
+    status('Timed out while: '+phase+'. Supabase is not responding as expected.');
+  },12000);
+  try{
+    phase='Loading saved authentication session';
+    status('Connecting to Supabase authentication...');
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError||!session?.access_token){
+      status('Please log in through the main Prediction Hub first.');
+      return;
+    }
+    signedInUserId=session.user.id;
+    phase='Fetching approved member profile';
+
+    status('Checking your approved member profile...');
+    const controller=new AbortController();
+    const abort=setTimeout(()=>controller.abort(),10000);
+    let response;
+    try{
+      response=await fetch(
+        'https://uvqbvqhkztdmdiayycuz.supabase.co/rest/v1/profiles?select=approved&id=eq.'+
+          encodeURIComponent(session.user.id),
+        {headers:{
+          apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',
+          Authorization:'Bearer '+session.access_token
+        },signal:controller.signal}
+      );
+    }finally{clearTimeout(abort);}
+    phase='Reading profile HTTP response';
+
+    if(!response.ok){
+      status('Profile lookup failed (HTTP '+response.status+'): '+(await response.text()).slice(0,180));
+      return;
+    }
+    phase='Parsing profile JSON';
+
+    const profiles=await response.json();
+    if(!profiles[0]?.approved){
+      status('Access restricted. Administrator approval required.');
+      return;
+    }
+    phase='Loading predictions';
+
+    $('content').classList.remove('hidden');
+    loadFixtures();
+    status('Approved member. Loading NHL predictions...');
+    await Promise.race([loadPredictions(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Prediction loading timed out')),12000))]);
+    autoPopulateHistory();
+    loadHistoricalRatings();
+    loadAdvancedResearch();
+  }catch(e){
+
+    status('NHL connection error: '+(e?.message||String(e)));
+  }finally{clearInterval(watchdog);clearTimeout(failTimer);}
+}
+
+$('refresh').onclick=loadPredictions;
+start();
+</script>
+</body>
+</html>
