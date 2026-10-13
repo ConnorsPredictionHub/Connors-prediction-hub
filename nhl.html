@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 19 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 20 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -265,7 +265,7 @@ $('calculateProbabilities').onclick=async()=>{
    ['Home regulation win',pct(p.regulation_win.home)],['Away regulation win',pct(p.regulation_win.away)],['Regulation tie',pct(p.regulation_win.tie)],
    ['BTTS 2+ goals',pct(p.btts_2plus)],
    ['Home 2+ goals',pct(p.team_totals.home_2plus)],['Away 2+ goals',pct(p.team_totals.away_2plus)],
-   ['Over 4.5 goals (regulation)',pct(p.game_totals.over_4.5)],
+   ['Over 4.5 goals (regulation)',pct(p.game_totals['over_4.5'])],
    ['Joint BTTS 2+ AND Over 4.5',pct(p.example_joint_multi.probability)+' · fair odds '+p.example_joint_multi.fair_decimal_odds.toFixed(2)]
   ];
   const table=document.createElement('table');
