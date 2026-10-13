@@ -140,6 +140,19 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
 @media(max-width:980px){.workspace-layout{grid-template-columns:200px minmax(0,1fr);gap:14px}.workspace-main .model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.workspace-layout{display:block}.workspace-sidebar{position:static;margin-bottom:16px}.model-menu:not([open]) .model-links{display:none}.workspace-main .model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-heading{display:block}.section-heading p{margin-top:2px}}
 @media(max-width:430px){.workspace-main .model-grid{gap:10px}.workspace-main .model-grid .sport{min-height:175px;padding:13px}.workspace-main .model-grid .sport h3{font-size:15px}.about-panel{padding:19px}}
+
+.account-settings{margin-top:25px}
+.account-settings h2{margin:6px 0 7px}
+.account-settings>.muted{font-size:13px;margin:0 0 20px}
+.settings-group{border-top:1px solid #29445f;padding:18px 0 6px}
+.settings-group h3{font-size:16px;margin:0 0 7px}
+.settings-current{color:#aee5ff;font-weight:650;font-size:13px;overflow-wrap:anywhere}
+.settings-group form{max-width:520px;display:grid;gap:7px}
+.settings-group label{font-size:12px;font-weight:650;margin-top:8px}
+.settings-group input{width:100%;margin:0 0 5px;box-sizing:border-box}
+.settings-group button{justify-self:start;font-size:12px;margin:8px 0 4px}
+.settings-help{font-size:12px}
+.settings-feedback:not(:empty){background:#0e2a41;border-left:3px solid #38bdf8;padding:12px;border-radius:7px;color:#d1eaff;font-size:13px;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -190,6 +203,7 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
         </nav>
       </details>
       <a class="sidebar-tracker" href="./bet-tracker.html">▤ &nbsp; Bet Tracker <span>↗</span></a>
+      <a class="sidebar-about" href="#account-settings">⚙ &nbsp; Account Settings <span>↗</span></a>
       <a class="sidebar-about" href="#about-us">About the Hub <span>↗</span></a>
     </aside>
     <div class="workspace-main">
@@ -206,6 +220,32 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
         <div class="sport"><div class="emoji">🏇</div><h3>Horse Racing</h3><p>V1.6-L</p><a href="./horse.html">OPEN MODEL →</a></div>
         <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><a href="./greyhounds.html">OPEN MODEL →</a></div>
       </div>
+      <section id="account-settings" class="panel account-settings" aria-labelledby="settings-heading">
+        <div class="eyebrow">MEMBER ACCOUNT</div>
+        <h2 id="settings-heading">Account Settings</h2>
+        <p class="muted">Manage your sign-in details securely. Email changes may require confirmation.</p>
+        <div class="settings-group">
+          <h3>Account email</h3>
+          <p id="currentAccountEmail" class="settings-current"></p>
+          <form id="changeEmailForm">
+            <label for="newAccountEmail">New email address</label>
+            <input id="newAccountEmail" type="email" autocomplete="email" placeholder="name@example.com" required>
+            <button type="submit">REQUEST EMAIL CHANGE</button>
+          </form>
+        </div>
+        <div class="settings-group">
+          <h3>Change password</h3>
+          <form id="changePasswordForm">
+            <label for="newAccountPassword">New password</label>
+            <input id="newAccountPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
+            <label for="confirmAccountPassword">Confirm new password</label>
+            <input id="confirmAccountPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <button type="submit">UPDATE PASSWORD</button>
+          </form>
+          <p class="muted settings-help">For security, you may be asked to verify your identity again before updating your password.</p>
+        </div>
+        <p id="accountSettingsStatus" class="settings-feedback" role="status" aria-live="polite"></p>
+      </section>
       <section id="about-us" class="panel about-panel" aria-labelledby="about-heading">
         <div class="eyebrow">ABOUT US</div>
         <h2 id="about-heading">About Connor's Prediction Hub</h2>
@@ -309,6 +349,7 @@ async function refresh(){
     return;
   }
   $('welcome').textContent='Signed in as '+(user.email||'member');
+  $('currentAccountEmail').textContent=user.email||'Email unavailable';
   if(profile.role==='admin'){
     show('dashboard','admin');
     await loadUsers();
@@ -317,6 +358,35 @@ async function refresh(){
   }
   message('Welcome to the Prediction Hub.');
 }
+
+$('changeEmailForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const target=$('newAccountEmail').value.trim(),output=$('accountSettingsStatus'),button=event.currentTarget.querySelector('button');
+ const {data:{user}}=await db.auth.getUser();
+ if(!user){output.textContent='Please sign in again.';return;}
+ if(!target||target.toLowerCase()===(user.email||'').toLowerCase()){output.textContent='Enter a different valid email address.';return;}
+ button.disabled=true;output.textContent='Requesting email change...';
+ try{
+  const {error}=await db.auth.updateUser({email:target},{emailRedirectTo:location.origin+location.pathname});
+  output.textContent=error?'Email change unavailable: '+error.message:'Email change requested. Follow the confirmation instructions sent by your account provider. Your current email remains active until the change is confirmed.';
+  if(!error)$('newAccountEmail').value='';
+ }catch(e){output.textContent='Email change failed: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+});
+$('changePasswordForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const password=$('newAccountPassword').value,confirmation=$('confirmAccountPassword').value,output=$('accountSettingsStatus'),button=event.currentTarget.querySelector('button');
+ if(password.length<8){output.textContent='Use at least 8 characters for your new password.';return;}
+ if(password!==confirmation){output.textContent='Passwords do not match.';return;}
+ if(!confirm('Update your account password?'))return;
+ button.disabled=true;output.textContent='Updating password...';
+ try{
+  const {error}=await db.auth.updateUser({password});
+  output.textContent=error?'Password update unavailable: '+error.message:'Password updated successfully. Use your new password the next time you sign in.';
+  if(!error)event.currentTarget.reset();
+ }catch(e){output.textContent='Password update failed: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+});
 
 $('login').onclick=async()=>{
   const email=$('email').value.trim();
