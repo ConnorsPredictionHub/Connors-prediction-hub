@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 21 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 22 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -72,6 +72,18 @@ th{color:#a9bad1}
     <p class="muted">Prepares a verified-fixture research request for ChatGPT. Automated NHL V1.0 calculations are not yet implemented; no simulated results are fabricated.</p>
   </div>
 
+  <div class="panel">
+    <h2>Historical NHL results · Research database</h2>
+    <p class="muted">Import official completed regular-season games, one club and season at a time. Overlapping club schedules are deduplicated. Import requires administrator access. Historical goals are not 5v5 expected goals.</p>
+    <div class="grid">
+      <label>Team abbreviation<input id="historyTeam" value="TOR" maxlength="3" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+      <label>Completed season<select id="historySeason" style="display:block;width:100%;padding:10px;margin-top:6px"><option value="20252026">2025–26</option><option value="20242025">2024–25</option><option value="20232024">2023–24</option></select></label>
+    </div>
+    <button id="importHistory">IMPORT OFFICIAL HISTORICAL GAMES (ADMIN)</button>
+    <button id="viewHistory">VIEW HISTORICAL SUMMARY</button>
+    <p id="historyStatus" class="muted" role="status"></p>
+    <div id="historyResults"></div>
+  </div>
   <div class="panel">
     <h2>Verified NHL scoring baselines</h2>
     <p class="muted">Live official NHL standings: games played, goals scored and conceded. These are all-strength descriptive statistics, not the 12-component model, opponent-adjusted xG or calibrated predictions.</p>
@@ -243,6 +255,36 @@ async function loadFixtures(){
   select.replaceChildren();select.add(new Option('Schedule unavailable',''));
  }finally{clearTimeout(timeout);}
 }
+async function historyRequest(method,body){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session?.access_token)throw Error('Sign in required');
+ const r=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-historical-import',{
+ method,headers:{'Content-Type':'application/json',apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},
+ ...(body?{body:JSON.stringify(body)}:{})
+ });
+ const p=await r.json();if(!r.ok)throw Error(p.error||'Historical service unavailable');return p;
+}
+$('importHistory').onclick=async()=>{
+ const button=$('importHistory'),out=$('historyStatus');
+ button.disabled=true;out.textContent='Importing official season schedule...';
+ try{
+  const p=await historyRequest('POST',{team:$('historyTeam').value.trim().toUpperCase(),season:Number($('historySeason').value)});
+  out.textContent='Imported '+p.imported+' completed games for '+p.team+' '+p.season+'. Duplicates safely merged.';
+  $('viewHistory').click();
+ }catch(e){out.textContent='Import unavailable: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+};
+$('viewHistory').onclick=async()=>{
+ const out=$('historyStatus'),root=$('historyResults');root.replaceChildren();out.textContent='Loading stored history...';
+ try{
+  const p=await historyRequest('GET');
+  out.textContent='Stored historical games in sample: '+p.stored_games_sample+'. Historical goal averages are descriptive, not calibrated expected goals.';
+  const table=document.createElement('table'),head=document.createElement('tr');
+  for(const h of ['Season','Games sampled','Goals / team / game'])addText(head,'th',h);table.append(head);
+  for(const s of p.season_summary){const tr=document.createElement('tr');for(const v of [s.season,String(s.games_in_sample),s.goals_per_team_game.toFixed(3)])addText(tr,'td',v);table.append(tr);}
+  root.append(table);
+ }catch(e){out.textContent='Historical summary unavailable: '+(e.message||String(e));}
+};
 $('loadBaselines').onclick=async()=>{
  const out=$('baselineStatus'),root=$('baselineData'),button=$('loadBaselines');
  root.replaceChildren();button.disabled=true;out.textContent='Loading official NHL standings...';
