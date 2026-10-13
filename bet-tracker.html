@@ -45,6 +45,19 @@ async function load(){
  if(error){$('history').textContent='Unable to load bets: '+error.message;return;}
  records=data||[];refresh();
 }
+function loadIncomingSelection(){
+ const query=new URLSearchParams(location.search),sport=query.get('sport'),raw=query.get('legs');
+ if(!sport||!raw)return;
+ if(!['horse','greyhounds','nhl','nfl','mlb','nbl'].includes(sport))return;
+ try{
+  const legs=JSON.parse(raw);
+  if(!Array.isArray(legs)||legs.length<1||legs.length>30||legs.some(x=>typeof x!=='string'||x.length>500))return;
+  $('sport').value=sport;$('type').value=legs.length===1?'single':'multi';
+  $('legs').value=legs.join('\n');
+  $('saveMessage').textContent='Selections imported from '+sport.toUpperCase()+'. Enter your actual stake and accepted bookmaker odds, then confirm only if you placed this bet.';
+  history.replaceState(null,'',location.pathname);
+ }catch{}
+}
 $('filter').onchange=refresh;
 $('save').onclick=async()=>{
  const legs=$('legs').value.split('\n').map(x=>x.trim()).filter(Boolean),type=$('type').value;
@@ -64,7 +77,7 @@ async function start(){
  userId=session.user.id;
  const {data:profile,error}=await db.from('profiles').select('approved').eq('id',userId).single();
  if(error||!profile?.approved){$('status').textContent='Approved account required.';return;}
- $('app').hidden=false;$('status').textContent='Signed in · Your recorded bets are private.';await load();
+ $('app').hidden=false;$('status').textContent='Signed in · Your recorded bets are private.';loadIncomingSelection();await load();
  }catch(e){$('status').textContent='Connection error: '+e.message;}
 }
 start();
