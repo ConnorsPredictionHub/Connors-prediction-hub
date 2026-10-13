@@ -37,9 +37,9 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 7 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 8 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
-<div id="diagnostic" class="muted" style="font-size:12px">Diagnostic: waiting for page scripts...</div>
+<div id="diagnostic" class="muted" style="font-size:12px">Diagnostic: waiting for page scripts...</div><div id="phase" class="muted" style="font-size:12px">Current step: starting...</div>
 
 <section id="content" class="hidden">
   <div class="grid">
@@ -164,16 +164,23 @@ async function loadPredictions(){
 }
 
 async function start(){
-  const watchdog=setTimeout(()=>{
-    status('Profile check is taking too long. Supabase request may be blocked; please reload the page.');
-  },15000);
+  let phase='Starting';
+  const watchdog=setInterval(()=>{
+    const el=document.getElementById('phase');
+    if(el)el.textContent='Current step: '+phase;
+  },500);
+  const failTimer=setTimeout(()=>{
+    status('Timed out while: '+phase+'. Supabase is not responding as expected.');
+  },12000);
   try{
+    phase='Loading saved authentication session';
     status('Connecting to Supabase authentication...');
     const {data:{session},error:sessionError}=await db.auth.getSession();
     if(sessionError||!session?.access_token){
       status('Please log in through the main Prediction Hub first.');
       return;
     }
+    phase='Fetching approved member profile';
     status('Checking your approved member profile...');
     const controller=new AbortController();
     const abort=setTimeout(()=>controller.abort(),10000);
@@ -188,21 +195,24 @@ async function start(){
         },signal:controller.signal}
       );
     }finally{clearTimeout(abort);}
+    phase='Reading profile HTTP response';
     if(!response.ok){
       status('Profile lookup failed (HTTP '+response.status+'): '+(await response.text()).slice(0,180));
       return;
     }
+    phase='Parsing profile JSON';
     const profiles=await response.json();
     if(!profiles[0]?.approved){
       status('Access restricted. Administrator approval required.');
       return;
     }
+    phase='Loading predictions';
     $('content').classList.remove('hidden');
     status('Approved member. Loading NHL predictions...');
     await loadPredictions();
   }catch(e){
     status('NHL connection error: '+(e?.message||String(e)));
-  }finally{clearTimeout(watchdog);}
+  }finally{clearInterval(watchdog);clearTimeout(failTimer);}
 }
 
 $('refresh').onclick=loadPredictions;
