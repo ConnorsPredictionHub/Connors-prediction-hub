@@ -68,13 +68,36 @@ label{color:#d9eaff}
 table{max-width:100%}
 th,td{border-bottom-color:#29445f}
 @media(max-width:640px){header{padding:17px 18px}main{padding:0 13px;margin:18px auto 48px}.panel{border-radius:14px;padding:17px}.grid{grid-template-columns:1fr}button{max-width:100%}.sport{padding:18px}}
+
+/* Homepage clarity and hierarchy */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:clamp(23px,3vw,29px)}
+header p{margin:2px 0 0}
+.header-tracker{display:inline-flex;align-items:center;padding:10px 16px;border:1px solid #376488;border-radius:10px;background:#142d46;color:#b7e9ff!important;font-size:13px;white-space:nowrap}
+.header-tracker:hover{background:#204565}
+.dashboard-intro{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:25px 28px;margin-top:0}
+.dashboard-intro h2{font-size:clamp(22px,3vw,27px);margin:3px 0 5px}
+.dashboard-intro #welcome{margin:0;font-size:13px}
+.dashboard-intro .intro-caption{margin:8px 0 0;font-size:14px}
+.eyebrow{color:#6fd3ff;font-size:11px;letter-spacing:.14em;font-weight:800}
+.dashboard-intro .logout{white-space:nowrap;font-size:13px}
+#dashboard>.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.sport{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-height:210px;padding:22px 23px}
+.sport .emoji{font-size:28px;margin:0 0 12px}
+.sport h3{margin:0;font-size:19px;letter-spacing:-.03em}
+.sport p{font-size:13px;margin:4px 0 20px}
+.sport a{margin-top:auto;width:100%;text-align:center;font-size:12px;letter-spacing:.035em;padding:12px}
+#message{margin:0 0 20px}
+footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
+@media(max-width:800px){#dashboard>.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){#dashboard>.grid{grid-template-columns:1fr 1fr;gap:10px}.sport{min-height:180px;padding:15px}.sport .emoji{font-size:25px;margin-bottom:8px}.sport h3{font-size:16px}.sport p{margin-bottom:12px}.sport a{font-size:10px;padding:11px 5px}.dashboard-intro{align-items:flex-start;padding:19px;flex-direction:column}.dashboard-intro .logout{align-self:flex-start}header{align-items:flex-start}.header-tracker{font-size:12px}}
 </style>
 </head>
 <body>
 <header>
   <h1>Connor's Prediction Hub</h1>
-  <p>Sports prediction and performance analytics</p>
-<p><a href="./bet-tracker.html" style="color:#66c2ff;font-weight:700">📋 Open Unified Bet Tracker</a></p></header>
+  <p>Sports prediction &amp; analytics</p>
+<a class="header-tracker" href="./bet-tracker.html">Bet Tracker ↗</a></header>
 <main>
 <div id="message" class="status" role="status">Connecting...</div>
 
@@ -104,20 +127,19 @@ th,td{border-bottom-color:#29445f}
 </section>
 
 <section id="dashboard" class="hidden">
-  <div class="panel">
-    <h2>Prediction Dashboard · Build 17</h2>
-    <p id="welcome"></p>
+  <div class="panel dashboard-intro">
+    <div><div class="eyebrow">YOUR WORKSPACE</div><h2>Your Sports Dashboard</h2><p id="welcome"></p><p class="intro-caption">Choose a sport to open its prediction model.</p></div>
     <button class="secondary logout">Log Out</button>
   </div>
   <div class="grid">
-    <div class="sport"><div class="emoji">🏇</div><h3>Horse Racing</h3><p>V1.6-L</p><a href="./horse.html">OPEN HORSE RACING DASHBOARD</a></div>
-    <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><a href="./greyhounds.html">OPEN GREYHOUNDS DASHBOARD</a></div>
-<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN NHL DASHBOARD</a></div>
-    <div class="sport"><div class="emoji">🏈</div><h3>NFL</h3><p>V1.0</p><a href="./nfl.html">OPEN NFL DASHBOARD</a></div>
-    <div class="sport"><div class="emoji">⚾</div><h3>MLB</h3><p>V1.0</p><a href="./mlb.html">OPEN MLB DASHBOARD</a></div>
-    <div class="sport"><div class="emoji">🏀</div><h3>NBL</h3><p>V1.0</p><a href="./nbl.html">OPEN NBL DASHBOARD</a></div>
+    <div class="sport"><div class="emoji">🏇</div><h3>Horse Racing</h3><p>V1.6-L</p><a href="./horse.html">OPEN MODEL →</a></div>
+    <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><a href="./greyhounds.html">OPEN MODEL →</a></div>
+<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN MODEL →</a></div>
+    <div class="sport"><div class="emoji">🏈</div><h3>NFL</h3><p>V1.0</p><a href="./nfl.html">OPEN MODEL →</a></div>
+    <div class="sport"><div class="emoji">⚾</div><h3>MLB</h3><p>V1.0</p><a href="./mlb.html">OPEN MODEL →</a></div>
+    <div class="sport"><div class="emoji">🏀</div><h3>NBL</h3><p>V1.0</p><a href="./nbl.html">OPEN MODEL →</a></div>
   </div>
-  <p>All six sports now have private account-based prediction histories. Automated prediction engines will be activated only after their original calculations and data are verified.</p>
+  
 </section>
 
 <section id="admin" class="panel hidden">
@@ -126,7 +148,7 @@ th,td{border-bottom-color:#29445f}
   <div id="users"></div>
 </section>
 </main>
-<footer>Connor's Prediction Hub · Dashboard V0.3 · Build 17</footer>
+<footer>Connor's Prediction Hub · Sports Analytics</footer>
 
 <script type="module">
 import {createClient} from
@@ -316,10 +338,10 @@ refresh();
   </div>
   <div class="grid">
  
-<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN NHL DASHBOARD</a></div>
+<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN MODEL →</a></div>
 
     <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><button disabled>RUN PREDICTION</button></div>
-<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN NHL DASHBOARD</a></div>
+<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN MODEL →</a></div>
     <div class="sport"><div class="emoji">🏈</div><h3>NFL</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
     <div class="sport"><div class="emoji">⚾</div><h3>MLB</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
     <div class="sport"><div class="emoji">🏀</div><h3>NBL</h3><p>V1.0</p><button disabled>RUN PREDICTION</button></div>
