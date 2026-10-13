@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 15 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 16 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -57,8 +57,8 @@ th{color:#a9bad1}
     <button id="runPrediction" disabled>PREPARE NHL V1.0 PREDICTION</button>
     <p id="prepared" class="muted" role="status"></p>
     <div class="panel" style="margin-top:18px;background:#182a43">
-      <h3>Save a verified NHL V1.0 prediction</h3>
-      <p class="muted">Run the research in ChatGPT first, then enter the confirmed output here. Only an administrator can save predictions.</p>
+      <h3>Save your NHL V1.0 prediction</h3>
+      <p class="muted">Run the research in ChatGPT first, then enter the confirmed output here. Only you can view the predictions saved to your account.</p>
       <div class="grid">
         <label>Away predicted goals<input id="awayGoals" type="number" min="0" max="20" step="1" placeholder="e.g. 4" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
         <label>Home predicted goals<input id="homeGoals" type="number" min="0" max="20" step="1" placeholder="e.g. 2" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
@@ -73,7 +73,7 @@ th{color:#a9bad1}
   </div>
 
   <div class="panel">
-    <h2>Saved NHL Predictions</h2>
+    <h2>My Saved NHL Predictions</h2>
     <button id="refresh">Refresh Predictions</button>
     <div id="predictions"></div>
   </div>
@@ -124,6 +124,7 @@ async function loadPredictions(){
   status('Loading saved NHL predictions...');
   const {data,error}=await db.from('nhl_predictions')
     .select('*')
+    .eq('user_id',signedInUserId)
     .order('game_date',{ascending:false})
     .limit(100);
 
@@ -171,6 +172,7 @@ async function loadPredictions(){
 }
 
 let upcomingGames=[];
+let signedInUserId=null;
 async function loadFixtures(){
  const label=$('fixtureStatus'),select=$('gameSelect'),button=$('runPrediction');
  const controller=new AbortController();
@@ -221,7 +223,8 @@ $('savePrediction').onclick=async()=>{
  if(frozen&&!confirm('Freeze this NHL V1.0 prediction? It will be stored as a confirmed pregame prediction.'))return;
  const awayName=game.awayTeam.placeName?.default||game.awayTeam.abbrev;
  const homeName=game.homeTeam.placeName?.default||game.homeTeam.abbrev;
- const record={game_date:game.startTimeUTC,away_team:awayName,home_team:homeName,predicted_away_score:away,predicted_home_score:home,predicted_winner:away>home?awayName:home>away?homeName:null,selections,multis,model_version:'NHL V1.0',status:frozen?'frozen':'draft'};
+ if(!signedInUserId){out.textContent='Please sign in again.';return;}
+ const record={user_id:signedInUserId,game_date:game.startTimeUTC,away_team:awayName,home_team:homeName,predicted_away_score:away,predicted_home_score:home,predicted_winner:away>home?awayName:home>away?homeName:null,selections,multis,model_version:'NHL V1.0',status:frozen?'frozen':'draft'};
  button.disabled=true;out.textContent='Saving prediction...';
  try{
   const {error}=await db.from('nhl_predictions').insert(record);
@@ -264,6 +267,7 @@ async function start(){
       status('Please log in through the main Prediction Hub first.');
       return;
     }
+    signedInUserId=session.user.id;
     phase='Fetching approved member profile';
 
     status('Checking your approved member profile...');
