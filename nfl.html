@@ -30,23 +30,6 @@ $('runBaseline').onclick=async()=>{
   const title=document.createElement('h3');title.textContent='NFL V1.0 · Provisional prediction · '+game.away+' @ '+game.home;root.append(title);
   const score=document.createElement('p');score.style.fontSize='20px';score.textContent='Projected points: '+game.away+' '+p.projected_points.away+' — '+game.home+' '+p.projected_points.home;root.append(score);
   const total=document.createElement('p');total.textContent='Projected total: '+p.projected_points.total+' points · Margin (home): '+p.projected_points.margin_home+' · Historical sample: '+p.historical_games+' games';root.append(total);
-  const h=Number(p.projected_points.home),a=Number(p.projected_points.away),t=h+a;
-  const candidates=[
-   [game.home+' 10+ team points',h,10],[game.away+' 10+ team points',a,10],
-   [game.home+' 14+ team points',h,14],[game.away+' 14+ team points',a,14],
-   [game.home+' 17+ team points',h,17],[game.away+' 17+ team points',a,17],
-   [game.home+' 20+ team points',h,20],[game.away+' 20+ team points',a,20],
-   ['Over 29.5 match points',t,29.5],['Over 34.5 match points',t,34.5],
-   ['Over 39.5 match points',t,39.5],['Over 44.5 match points',t,44.5]
-  ].filter(x=>x[1]>=x[2]+3).sort((x,y)=>(y[1]-y[2])-(x[1]-x[2])).slice(0,10);
-  const heading=document.createElement('h3');heading.textContent='Ranked bet candidates';root.append(heading);
-  const warning=document.createElement('p');warning.textContent='Provisional screening only: ranked by points above historical baseline, NOT win probability or expected value. No verified bookmaker odds.';root.append(warning);
-  const selected=new Set(),slip=document.createElement('div');
-  const updateSlip=()=>{slip.replaceChildren();const legs=candidates.filter(x=>selected.has(x[0])).map(x=>game.away+' @ '+game.home+' — '+x[0]);const label=document.createElement('p');label.textContent=legs.length?(legs.length===1?'Single: ':'Multi: ')+legs.join(' + '):'Select bets to build a single or multi';slip.append(label);if(legs.length){const copy=document.createElement('button');copy.textContent='COPY SELECTIONS';copy.onclick=()=>navigator.clipboard.writeText(legs.join(' + '));slip.append(copy);const track=document.createElement('button');track.textContent='ADD TO BET TRACKER';track.onclick=()=>location.href='bet-tracker.html?sport=nfl&legs='+encodeURIComponent(JSON.stringify(legs));slip.append(track);}};
-  candidates.forEach((x,i)=>{const line=document.createElement('label');line.style.display='block';line.style.padding='6px';const check=document.createElement('input');check.type='checkbox';check.onchange=()=>{if(check.checked)selected.add(x[0]);else selected.delete(x[0]);updateSlip();};line.append(check,document.createTextNode(' #'+(i+1)+' '+x[0]+' · baseline buffer +'+(x[1]-x[2]).toFixed(1)));root.append(line);});
-  if(!candidates.length){const empty=document.createElement('p');empty.textContent='No qualifying baseline markets for this game.';root.append(empty);}
-  root.append(slip);updateSlip();
-  if(Array.isArray(p.markets)){const heading=document.createElement('h3');heading.textContent='Historical probability estimates · Uncalibrated';root.append(heading);const note=document.createElement('p');note.textContent='Normal approximation using 2024–25 scoring variance; not the full NFL V1.0 WEPA model. Bookmaker odds, injuries, matchup efficiency and correlated multi probabilities are not included.';root.append(note);p.markets.slice(0,10).forEach((m,i)=>{const line=document.createElement('p');line.textContent='#'+(i+1)+' '+m.selection+' · '+(m.probability*100).toFixed(1)+'% · fair odds '+m.fair_odds.toFixed(2);root.append(line);});}
   const caveat=document.createElement('p');caveat.className='tag';caveat.textContent=p.method+' '+p.warning;root.append(caveat);
  }catch(e){root.textContent='Baseline failed: '+e.message;}finally{button.disabled=false;}
 };
