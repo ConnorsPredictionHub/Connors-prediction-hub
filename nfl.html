@@ -46,6 +46,7 @@ $('runBaseline').onclick=async()=>{
   candidates.forEach((x,i)=>{const line=document.createElement('label');line.style.display='block';line.style.padding='6px';const check=document.createElement('input');check.type='checkbox';check.onchange=()=>{if(check.checked)selected.add(x[0]);else selected.delete(x[0]);updateSlip();};line.append(check,document.createTextNode(' #'+(i+1)+' '+x[0]+' · baseline buffer +'+(x[1]-x[2]).toFixed(1)));root.append(line);});
   if(!candidates.length){const empty=document.createElement('p');empty.textContent='No qualifying baseline markets for this game.';root.append(empty);}
   root.append(slip);updateSlip();
+  if(Array.isArray(p.markets)){const heading=document.createElement('h3');heading.textContent='Historical probability estimates · Uncalibrated';root.append(heading);const note=document.createElement('p');note.textContent='Normal approximation using 2024–25 scoring variance; not the full NFL V1.0 WEPA model. Bookmaker odds, injuries, matchup efficiency and correlated multi probabilities are not included.';root.append(note);p.markets.slice(0,10).forEach((m,i)=>{const line=document.createElement('p');line.textContent='#'+(i+1)+' '+m.selection+' · '+(m.probability*100).toFixed(1)+'% · fair odds '+m.fair_odds.toFixed(2);root.append(line);});}
   const caveat=document.createElement('p');caveat.className='tag';caveat.textContent=p.method+' '+p.warning;root.append(caveat);
  }catch(e){root.textContent='Baseline failed: '+e.message;}finally{button.disabled=false;}
 };
