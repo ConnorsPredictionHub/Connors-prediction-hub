@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Horse Racing | Connor's Prediction Hub</title><style>*{box-sizing:border-box}body{margin:0;background:#0b1220;color:#eaf1ff;font:16px system-ui,Arial}header{padding:22px;background:#121e32}main{max-width:900px;margin:24px auto;padding:0 16px}.panel{background:#142239;border:1px solid #30435d;border-radius:14px;padding:20px;margin:16px 0}a{color:#66c2ff}p,small{color:#a9bad1}label{display:block;margin:12px 0}input,textarea{width:100%;background:#0b1526;color:white;border:1px solid #40536d;border-radius:8px;padding:11px;font:inherit;margin-top:6px}input[type=checkbox]{width:auto}button{background:#36a5ee;border:0;border-radius:8px;padding:12px;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.entry{border-top:1px solid #30435d;padding:16px 0;white-space:pre-wrap;overflow-wrap:anywhere}.tag{color:#9acbff;font-size:13px}</style></head><body><header><a href="./index.html">← Prediction Hub</a><h1>🏇 Horse Racing · V1.6-L</h1><p>Private prediction history · Drafts · Confirmed picks</p></header><main><div id="status" class="panel">Checking account access...</div><section id="app" hidden><div class="panel"><h2>Save researched prediction</h2><p>This saves model output you have researched and checked. It does not run an automated model or calculate unverified probabilities.</p><label>Race or matchup<input id="event" placeholder="Teams / track and race" required></label><label>Event date (optional)<input id="date" type="datetime-local"></label><label>Prediction / projected result<textarea id="prediction" rows="4" placeholder="Your verified prediction" required></textarea></label><label>Ranked selections (one per line)<textarea id="selections" rows="4"></textarea></label><label>Multis (one per line)<textarea id="multis" rows="3"></textarea></label><label><input id="freeze" type="checkbox"> I confirm these selections and want to freeze them before the event</label><button id="save">SAVE MY PREDICTION</button><p id="saveStatus" role="status"></p></div><div class="panel"><h2>My Horse Racing predictions</h2><div id="history">Loading...</div></div></section></main><script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const db=createClient('https://uvqbvqhkztdmdiayycuz.supabase.co','sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS');
+const $=id=>document.getElementById(id);let userId;
+const sport='horse',model='V1.6-L';
+async function history(){
+ const {data,error}=await db.from('sport_predictions').select('*').eq('user_id',userId).eq('sport',sport).order('created_at',{ascending:false}).limit(100);
+ const root=$('history');root.replaceChildren();
+ if(error){root.textContent='Could not load: '+error.message;return;}
+ if(!data.length){root.textContent='No saved predictions yet.';return;}
+ for(const p of data){const div=document.createElement('div');div.className='entry';const h=document.createElement('h3');h.textContent=p.event_name;div.append(h);for(const t of [p.status.toUpperCase()+' · '+p.model_version,p.event_date?new Date(p.event_date).toLocaleString('en-AU'):null,p.prediction_text,p.selections?.length?'Selections: '+p.selections.join(' | '):null,p.multis?.length?'Multis: '+p.multis.join(' | '):null])if(t){const x=document.createElement('p');x.textContent=t;div.append(x);}root.append(div);}
+}
+$('save').onclick=async()=>{
+ const event=$('event').value.trim(),prediction=$('prediction').value.trim();
+ if(!event||!prediction){$('saveStatus').textContent='Enter an event and prediction.';return;}
+ const frozen=$('freeze').checked;
+ if(frozen&&!confirm('Confirm and freeze this prediction?'))return;
+ const record={user_id:userId,sport,event_name:event,event_date:$('date').value?new Date($('date').value).toISOString():null,prediction_text:prediction,selections:$('selections').value.split('\n').map(x=>x.trim()).filter(Boolean),multis:$('multis').value.split('\n').map(x=>x.trim()).filter(Boolean),model_version:model,status:frozen?'frozen':'draft'};
+ $('save').disabled=true;$('saveStatus').textContent='Saving...';
+ const {error}=await db.from('sport_predictions').insert(record);
+ $('save').disabled=false;$('saveStatus').textContent=error?'Save failed: '+error.message:(frozen?'Frozen prediction saved.':'Draft saved.');
+ if(!error){$('freeze').checked=false;await history();}
+};
+async function start(){
+ try{
+ const {data:{session}}=await db.auth.getSession();
+ if(!session?.user){$('status').textContent='Please sign in on the main Prediction Hub page.';return;}
+ userId=session.user.id;
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
+ let response;
+ try{response=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/rest/v1/profiles?select=approved&id=eq.'+encodeURIComponent(userId),{headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},signal:controller.signal});}finally{clearTimeout(timeout);}
+ if(!response.ok)throw Error('Profile check HTTP '+response.status);
+ const profiles=await response.json();if(!profiles[0]?.approved){$('status').textContent='Account approval required.';return;}
+ $('app').hidden=false;$('status').textContent='Signed in · Your predictions are private to this account.';await history();
+ }catch(e){$('status').textContent='Connection error: '+e.message;}
+}
+start();
+</script></body></html>
