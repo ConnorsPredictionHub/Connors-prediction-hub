@@ -469,7 +469,14 @@ $('runPrediction').onclick=async()=>{
    const line=document.createElement('p');line.textContent=picks.length?picks.map(x=>x.label).join(' + '):'Tick any selection below to build a bet slip.';summary.append(line);
    if(picks.length===1){const m=picks[0],info=document.createElement('p');info.textContent='Model-implied probability '+m.probability+'% · model fair odds '+m.fair_odds+'.';summary.append(info);}
    if(picks.length>1){const note=document.createElement('p');note.className='muted';note.textContent='Same-game markets can be correlated. Combined probability and fair odds are not calculated for arbitrary combinations. These are model estimates, not bookmaker odds.';summary.append(note);}
-   if(picks.length){const copy=document.createElement('button');copy.textContent='COPY '+(picks.length===1?'SINGLE':'MULTI')+' SELECTION';copy.onclick=async()=>{const slip=p.away+' @ '+p.home+' | '+picks.map(x=>x.label).join(' + ')+' | Provisional model; verify bookmaker markets and odds';try{await navigator.clipboard.writeText(slip);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};summary.append(copy);}
+   if(picks.length){const copy=document.createElement('button');copy.textContent='COPY '+(picks.length===1?'SINGLE':'MULTI')+' SELECTION';copy.onclick=async()=>{const slip=p.away+' @ '+p.home+' | '+picks.map(x=>x.label).join(' + ')+' | Provisional model; verify bookmaker markets and odds';try{await navigator.clipboard.writeText(slip);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};summary.append(copy);
+    const track=document.createElement('button');track.textContent='ADD TO BET TRACKER';
+    track.onclick=()=>{
+     const url=new URL('./bet-tracker.html',location.href);
+     url.searchParams.set('sport','nhl');
+     url.searchParams.set('legs',JSON.stringify(picks.map(x=>p.away+' @ '+p.home+' — '+x.label)));
+     location.href=url.toString();
+    };summary.append(track);}
   };
   for(const [i,m] of p.markets.entries()){
    const tr=document.createElement('tr'),cell=document.createElement('td'),check=document.createElement('input');
