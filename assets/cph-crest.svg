@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 485" role="img" aria-labelledby="title desc">
+<title id="title">Connor's Prediction Hub crest</title><desc id="desc">Black shield outlined in gold with silver C and H, gold P, a crown and rising analytics bars</desc>
+<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff2bb"/><stop offset=".26" stop-color="#e7b957"/><stop offset=".52" stop-color="#a76c20"/><stop offset=".77" stop-color="#f4d27b"/><stop offset="1" stop-color="#95601c"/></linearGradient><linearGradient id="silver" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff"/><stop offset=".42" stop-color="#c7d0da"/><stop offset=".7" stop-color="#798899"/><stop offset="1" stop-color="#edf1f4"/></linearGradient><linearGradient id="black" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1a2530"/><stop offset=".5" stop-color="#080f19"/><stop offset="1" stop-color="#152334"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="9" stdDeviation="9" flood-color="#000" flood-opacity=".55"/></filter></defs>
+<path d="M210 14 385 83 371 296Q355 395 210 464 65 395 49 296L35 83Z" fill="url(#gold)" filter="url(#shadow)"/>
+<path d="M210 30 367 93 355 291Q341 379 210 444 79 379 65 291L53 93Z" fill="url(#black)" stroke="#fff0c2" stroke-width="2"/>
+<path d="M210 44 352 101 340 286Q325 366 210 425 95 366 80 286L68 101Z" fill="none" stroke="#966a32" stroke-width="2" opacity=".8"/>
+<path d="M173 94 183 67 199 85 210 58 223 85 240 67 249 94Z" fill="url(#gold)"/><rect x="171" y="97" width="80" height="9" rx="3" fill="url(#gold)"/>
+<text x="210" y="222" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="126" letter-spacing="-8"><tspan fill="url(#silver)">C</tspan><tspan fill="url(#gold)">P</tspan><tspan fill="url(#silver)">H</tspan></text>
+<path d="M103 241H317" stroke="#b68a46" stroke-width="2" opacity=".8"/>
+<text x="210" y="296" text-anchor="middle" fill="url(#silver)" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="800" letter-spacing="5">CONNORS</text>
+<text x="210" y="324" text-anchor="middle" fill="#eac16b" font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="700" letter-spacing="3">PREDICTION HUB</text>
+<g fill="url(#gold)"><rect x="157" y="374" width="13" height="11" rx="1"/><rect x="177" y="362" width="13" height="23" rx="1"/><rect x="197" y="350" width="13" height="35" rx="1"/><rect x="217" y="338" width="13" height="47" rx="1"/><rect x="237" y="326" width="13" height="59" rx="1"/></g>
+</svg>
