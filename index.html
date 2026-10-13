@@ -270,7 +270,7 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
         <p class="overview-note" id="homeBetNote">Loading your recorded bets…</p>
       </section>
       <section class="home-fixtures" aria-labelledby="home-fixtures-heading">
-        <div class="overview-title"><h2 id="home-fixtures-heading">Today's Sporting Events</h2><span class="fixtures-timezone">Brisbane time · AEST</span></div>
+        <div class="overview-title"><h2 id="home-fixtures-heading">Upcoming Sporting Events</h2><span class="fixtures-timezone">Brisbane time · AEST</span></div>
         <div class="fixture-filters" id="fixtureFilters" aria-label="Fixture sports">
           <button type="button" class="active" data-fixture-sport="all">All</button>
           <button type="button" data-fixture-sport="nhl">NHL</button>
@@ -372,10 +372,10 @@ let homeFixtureRecords=[],homeFixtureSport='all';
 const fixturePaths={nhl:'./nhl.html',nfl:'./nfl.html',mlb:'./mlb.html',nbl:'./nbl.html'};
 function renderHomeFixtures(){
  const root=$('homeFixtures');root.replaceChildren();
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Brisbane',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const filtered=homeFixtureRecords.filter(g=>(homeFixtureSport==='all'||g.sport===homeFixtureSport)&&new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Brisbane',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(g.date))===today).sort((a,b)=>a.date-b.date).slice(0,10);
- if(!filtered.length){const p=document.createElement('p');p.className='fixture-empty';p.textContent='No verified '+(homeFixtureSport==='all'?'':' '+homeFixtureSport.toUpperCase())+' fixtures found for today. Select a model to see its full upcoming schedule.';root.append(p);return;}
- for(const g of filtered){const row=document.createElement('div');row.className='fixture-item';const left=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),link=document.createElement('a');name.textContent=g.away+' @ '+g.home;meta.textContent=g.sport.toUpperCase()+' · '+new Date(g.date).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',minute:'2-digit'});left.append(name,meta);link.href=fixturePaths[g.sport];link.textContent='OPEN MODEL →';row.append(left,link);root.append(row);}
+ const now=Date.now(),horizon=now+7*24*60*60*1000;
+ const filtered=homeFixtureRecords.filter(g=>(homeFixtureSport==='all'||g.sport===homeFixtureSport)&&Date.parse(g.date)>=now-2*60*60*1000&&Date.parse(g.date)<=horizon).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).slice(0,12);
+ if(!filtered.length){const p=document.createElement('p');p.className='fixture-empty';p.textContent='No verified '+(homeFixtureSport==='all'?'':' '+homeFixtureSport.toUpperCase())+' fixtures found in the next 7 days. Select a model to see its full upcoming schedule.';root.append(p);return;}
+ for(const g of filtered){const row=document.createElement('div');row.className='fixture-item';const left=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),link=document.createElement('a');name.textContent=g.away+' @ '+g.home;meta.textContent=g.sport.toUpperCase()+' · '+new Date(g.date).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});left.append(name,meta);link.href=fixturePaths[g.sport];link.textContent='OPEN MODEL →';row.append(left,link);root.append(row);}
 }
 $('fixtureFilters').addEventListener('click',event=>{const button=event.target.closest('button[data-fixture-sport]');if(!button)return;homeFixtureSport=button.dataset.fixtureSport;for(const b of $('fixtureFilters').querySelectorAll('button'))b.classList.toggle('active',b===button);renderHomeFixtures();});
 async function loadHomeOverview(user){
