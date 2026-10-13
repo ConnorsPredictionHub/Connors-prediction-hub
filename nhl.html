@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 9 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 10 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 <div id="diagnostic" class="muted" style="font-size:12px">Diagnostic: waiting for page scripts...</div><div id="phase" class="muted" style="font-size:12px">Current step: starting...</div>
 
@@ -186,6 +186,7 @@ async function start(){
       return;
     }
     phase='Fetching approved member profile';
+    document.getElementById('phase').textContent='Profile request: started';
     status('Checking your approved member profile...');
     const controller=new AbortController();
     const abort=setTimeout(()=>controller.abort(),10000);
@@ -201,21 +202,25 @@ async function start(){
       );
     }finally{clearTimeout(abort);}
     phase='Reading profile HTTP response';
+    document.getElementById('phase').textContent='Profile request: HTTP '+response.status;
     if(!response.ok){
       status('Profile lookup failed (HTTP '+response.status+'): '+(await response.text()).slice(0,180));
       return;
     }
     phase='Parsing profile JSON';
+    document.getElementById('phase').textContent='Profile request: parsing response';
     const profiles=await response.json();
     if(!profiles[0]?.approved){
       status('Access restricted. Administrator approval required.');
       return;
     }
     phase='Loading predictions';
+    document.getElementById('phase').textContent='Profile request: approved';
     $('content').classList.remove('hidden');
     status('Approved member. Loading NHL predictions...');
     await loadPredictions();
   }catch(e){
+    document.getElementById('phase').textContent='Profile request error: '+(e?.message||String(e));
     status('NHL connection error: '+(e?.message||String(e)));
   }finally{clearInterval(watchdog);clearTimeout(failTimer);}
 }
