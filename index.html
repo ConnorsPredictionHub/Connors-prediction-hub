@@ -109,6 +109,37 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
 .admin-toolbar button{font-size:12px}
 .admin-inner .user{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;font-size:13px}
 .admin-inner .user button{font-size:12px;margin:0}
+
+/* Professional homepage navigation and About section. */
+.workspace-layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:23px;align-items:start}
+.workspace-sidebar{position:sticky;top:20px;background:#101f33;border:1px solid #2b4663;border-radius:16px;padding:10px;box-shadow:0 12px 28px #02091430}
+.model-menu>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:12px 11px;color:#e9f6ff;font-size:13px;font-weight:800;cursor:pointer}
+.model-menu>summary::-webkit-details-marker{display:none}
+.menu-arrow{font-size:21px;color:#8ecff5;transition:transform .15s}
+.model-menu:not([open]) .menu-arrow{transform:rotate(-90deg)}
+.model-links{display:flex;flex-direction:column;gap:3px;padding:5px 0 9px}
+.model-links a{display:flex;align-items:center;gap:9px;color:#d7e8f8;text-decoration:none;padding:11px 9px;border-radius:9px;font-size:13px}
+.model-links a>span:nth-child(1){flex:1;display:flex;flex-direction:column;line-height:1.3}
+.model-links a small{color:#8eaac4;font-size:10px;margin-top:3px}
+.model-links a>span:last-child{color:#6ecaf5}
+.model-links a:hover,.sidebar-about:hover{background:#1b3b58;color:#fff}
+.sidebar-tracker,.sidebar-about{display:flex;align-items:center;justify-content:space-between;padding:12px 11px;border-top:1px solid #2b4663;text-decoration:none;color:#b5e4ff;font-size:13px;font-weight:650}
+.sidebar-about{color:#b3c8dc;font-weight:500}
+.workspace-main{min-width:0}
+.workspace-main .dashboard-intro{margin-top:0}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 0 13px}
+.section-heading h2{font-size:19px;margin:0}
+.section-heading p{font-size:12px;margin:0}
+.workspace-main .model-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.workspace-main .model-grid .sport{padding:18px;min-height:192px}
+.workspace-main .model-grid .sport h3{font-size:17px}
+.about-panel{margin-top:25px;padding:25px 27px}
+.about-panel h2{font-size:22px;margin:7px 0 12px}
+.about-panel p{font-size:14px;line-height:1.75;margin:0 0 12px;max-width:75ch}
+.about-footer{border-top:1px solid #2b4663;margin-top:18px;padding-top:13px;font-size:12px;color:#88b5d1}
+@media(max-width:980px){.workspace-layout{grid-template-columns:200px minmax(0,1fr);gap:14px}.workspace-main .model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.workspace-layout{display:block}.workspace-sidebar{position:static;margin-bottom:16px}.model-menu:not([open]) .model-links{display:none}.workspace-main .model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-heading{display:block}.section-heading p{margin-top:2px}}
+@media(max-width:430px){.workspace-main .model-grid{gap:10px}.workspace-main .model-grid .sport{min-height:175px;padding:13px}.workspace-main .model-grid .sport h3{font-size:15px}.about-panel{padding:19px}}
 </style>
 </head>
 <body>
@@ -145,19 +176,45 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
 </section>
 
 <section id="dashboard" class="hidden">
-  <div class="panel dashboard-intro">
-    <div><div class="eyebrow">YOUR WORKSPACE</div><h2>Your Sports Dashboard</h2><p id="welcome"></p><p class="intro-caption">Choose a sport to open its prediction model.</p></div>
-    <button class="secondary logout">Log Out</button>
+  <div class="workspace-layout">
+    <aside class="workspace-sidebar" aria-label="Sports and model navigation">
+      <details class="model-menu" open>
+        <summary><span>☰ &nbsp; Sports &amp; Models</span><span class="menu-arrow">⌄</span></summary>
+        <nav class="model-links" aria-label="Select a prediction model">
+          <a href="./nhl.html">🏒 <span>NHL <small>V1.0</small></span> <span>↗</span></a>
+          <a href="./nfl.html">🏈 <span>NFL <small>V1.0</small></span> <span>↗</span></a>
+          <a href="./mlb.html">⚾ <span>MLB <small>V1.0</small></span> <span>↗</span></a>
+          <a href="./nbl.html">🏀 <span>NBL <small>V1.0</small></span> <span>↗</span></a>
+          <a href="./horse.html">🏇 <span>Horse Racing <small>V1.6-L</small></span> <span>↗</span></a>
+          <a href="./greyhounds.html">🐕 <span>Greyhounds <small>Original</small></span> <span>↗</span></a>
+        </nav>
+      </details>
+      <a class="sidebar-tracker" href="./bet-tracker.html">▤ &nbsp; Bet Tracker <span>↗</span></a>
+      <a class="sidebar-about" href="#about-us">About the Hub <span>↗</span></a>
+    </aside>
+    <div class="workspace-main">
+      <div class="panel dashboard-intro">
+        <div><div class="eyebrow">MEMBER WORKSPACE</div><h2>Your Sports Dashboard</h2><p id="welcome"></p><p class="intro-caption">Select a model to explore predictions and betting markets.</p></div>
+        <button class="secondary logout">Log Out</button>
+      </div>
+      <div class="section-heading"><h2>Prediction Models</h2><p>Choose a sport to get started.</p></div>
+      <div class="grid model-grid">
+        <div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html">OPEN MODEL →</a></div>
+        <div class="sport"><div class="emoji">🏈</div><h3>NFL</h3><p>V1.0</p><a href="./nfl.html">OPEN MODEL →</a></div>
+        <div class="sport"><div class="emoji">⚾</div><h3>MLB</h3><p>V1.0</p><a href="./mlb.html">OPEN MODEL →</a></div>
+        <div class="sport"><div class="emoji">🏀</div><h3>NBL</h3><p>V1.0</p><a href="./nbl.html">OPEN MODEL →</a></div>
+        <div class="sport"><div class="emoji">🏇</div><h3>Horse Racing</h3><p>V1.6-L</p><a href="./horse.html">OPEN MODEL →</a></div>
+        <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><a href="./greyhounds.html">OPEN MODEL →</a></div>
+      </div>
+      <section id="about-us" class="panel about-panel" aria-labelledby="about-heading">
+        <div class="eyebrow">ABOUT US</div>
+        <h2 id="about-heading">About Connor's Prediction Hub</h2>
+        <p>Connor's Prediction Hub is a private sports analytics workspace bringing together dedicated prediction models for hockey, football, baseball, basketball, horse racing and greyhound racing.</p>
+        <p>Our focus is clear presentation: upcoming matchups, model-generated estimates, ranked selections and a personal bet tracker in one place. Model outputs are estimates, not guarantees, and some automated calculations remain provisional while their data and calibration are developed.</p>
+        <div class="about-footer">Independent sports analytics &nbsp;·&nbsp; Members-only workspace</div>
+      </section>
+    </div>
   </div>
-  <div class="grid">
-    <div class="sport"><div class="emoji">🏇</div><h3>Horse Racing</h3><p>V1.6-L</p><a href="./horse.html">OPEN MODEL →</a></div>
-    <div class="sport"><div class="emoji">🐕</div><h3>Greyhounds</h3><p>Original Model</p><a href="./greyhounds.html">OPEN MODEL →</a></div>
-<div class="sport"><div class="emoji">🏒</div><h3>NHL</h3><p>V1.0</p><a href="./nhl.html?build=20261013-unified">OPEN MODEL →</a></div>
-    <div class="sport"><div class="emoji">🏈</div><h3>NFL</h3><p>V1.0</p><a href="./nfl.html">OPEN MODEL →</a></div>
-    <div class="sport"><div class="emoji">⚾</div><h3>MLB</h3><p>V1.0</p><a href="./mlb.html">OPEN MODEL →</a></div>
-    <div class="sport"><div class="emoji">🏀</div><h3>NBL</h3><p>V1.0</p><a href="./nbl.html">OPEN MODEL →</a></div>
-  </div>
-  
 </section>
 
 <section id="admin" class="admin-area hidden">
