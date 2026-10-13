@@ -208,6 +208,21 @@ input,textarea,select{background:#0e1720;border-color:#695536}
 .status{border-color:#6a5634;border-left-color:#d5a449;background:#1c201e;color:#e7d6b5}
 a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
 @media(max-width:550px){header.cph-site-header{padding:9px 15px}.cph-brand img{width:57px;height:67px}.cph-brand{gap:7px}.cph-brand strong{font-size:17px;letter-spacing:.08em}.cph-brand small{font-size:9px;letter-spacing:.12em}.cph-brand em{display:none}header.cph-site-header .header-tracker{font-size:10px;padding:8px}}
+
+.home-predictions{background:linear-gradient(145deg,#241d14,#151c24 55%,#111820);border:1px solid #a47a3a;border-radius:16px;padding:19px;margin-bottom:17px;box-shadow:0 7px 25px #0004}
+.gold-star{color:#f4ca71;margin-right:6px}
+.prediction-kicker{color:#d9b978;font-size:10px;letter-spacing:.12em;font-weight:800}
+.prediction-disclaimer{color:#bcb5a6;font-size:11px;line-height:1.6;margin:0 0 14px}
+.prediction-list{display:grid;gap:9px}
+.prediction-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#131a22;border:1px solid #55442c;border-radius:11px;padding:12px 14px}
+.prediction-row strong{display:block;color:#f6eee0;font-size:13px;margin:3px 0;overflow-wrap:anywhere}
+.prediction-row small{display:block;color:#b7ad9d;font-size:11px}
+.prediction-row .prediction-sport{font-size:10px;color:#efc677;font-weight:800;letter-spacing:.08em}
+.prediction-row .prediction-confidence{font-size:20px;font-weight:800;color:#f2ce82;white-space:nowrap}
+.prediction-row a{color:#f0c879;font-size:11px;white-space:nowrap;text-decoration:none}
+.prediction-footer{display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid #55442c;padding-top:13px;margin-top:14px}
+.prediction-footer a{color:#eac47b;font-size:11px;font-weight:700;text-decoration:none}
+@media(max-width:460px){.prediction-row{flex-wrap:wrap}.prediction-kicker{font-size:9px}}
 </style>
 </head>
 <body>
@@ -298,6 +313,12 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
           <div class="performance-tile"><span>Pending bets</span><strong id="homePending">—</strong></div>
         </div>
         <p class="overview-note" id="homeBetNote">Loading your recorded bets…</p>
+      </section>
+      <section class="home-predictions" aria-labelledby="top-predictions-title">
+        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top Model Predictions</h2><span class="prediction-kicker">LATEST SAVED RUNS</span></div>
+        <p class="prediction-disclaimer">Highest available estimated probabilities from your saved automated model runs. Provisional, uncalibrated estimates — not verified betting value or guaranteed outcomes. Match dates must be checked before betting.</p>
+        <div id="topPredictions" class="prediction-list" aria-live="polite">Loading your saved predictions…</div>
+        <div class="prediction-footer"><a href="./nhl.html">NHL</a><a href="./nfl.html">NFL</a><a href="./mlb.html">MLB</a><a href="./nbl.html">NBL</a></div>
       </section>
       <section class="home-fixtures" aria-labelledby="home-fixtures-heading">
         <div class="overview-title"><h2 id="home-fixtures-heading">Upcoming Sporting Events</h2><span class="fixtures-timezone">Brisbane time · AEST</span></div>
@@ -408,6 +429,35 @@ function renderHomeFixtures(){
  for(const g of filtered){const row=document.createElement('div');row.className='fixture-item';const left=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),link=document.createElement('a');name.textContent=g.away+' @ '+g.home;meta.textContent=g.sport.toUpperCase()+' · '+new Date(g.date).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});left.append(name,meta);link.href=fixturePaths[g.sport];link.textContent='OPEN MODEL →';row.append(left,link);root.append(row);}
 }
 $('fixtureFilters').addEventListener('click',event=>{const button=event.target.closest('button[data-fixture-sport]');if(!button)return;homeFixtureSport=button.dataset.fixtureSport;for(const b of $('fixtureFilters').querySelectorAll('button'))b.classList.toggle('active',b===button);renderHomeFixtures();});
+
+async function loadTopPredictions(user){
+ const root=$('topPredictions');root.textContent='Loading your saved predictions…';
+ try{
+  const {data,error}=await db.from('sport_model_runs').select('sport,event_name,model_status,output,created_at').eq('user_id',user.id).in('sport',['nhl','nfl','mlb','nbl']).order('created_at',{ascending:false}).limit(100);
+  if(error)throw error;
+  const seen=new Set(),picks=[];
+  for(const run of data||[]){
+   const sport=String(run.sport||'').toLowerCase(),event=String(run.event_name||'').trim(),output=run.output||{};
+   if(!event||!fixturePaths[sport])continue;
+   const key=sport+'|'+event.toLowerCase();if(seen.has(key))continue;seen.add(key);
+   const raw=Array.isArray(output.markets)?output.markets:Array.isArray(output.picks)?output.picks:[];
+   const options=raw.map(p=>{const label=String(p.selection||p.label||'').trim(),n=Number(p.probability),pct=n<=1?n*100:n;return {label,pct};}).filter(p=>p.label&&Number.isFinite(p.pct)&&p.pct>0&&p.pct<=100).sort((a,b)=>b.pct-a.pct);
+   if(options.length)picks.push({sport,event,model_status:run.model_status,created_at:run.created_at,...options[0]});
+  }
+  picks.sort((a,b)=>b.pct-a.pct);root.replaceChildren();
+  if(!picks.length){const empty=document.createElement('p');empty.className='fixture-empty';empty.textContent='No saved model predictions with calculated probabilities yet. Run an NHL, NFL, MLB or NBL prediction to populate this section.';root.append(empty);return;}
+  for(const p of picks.slice(0,5)){
+   const row=document.createElement('div');row.className='prediction-row';const left=document.createElement('div'),sport=document.createElement('span'),name=document.createElement('strong'),meta=document.createElement('small'),right=document.createElement('div'),pct=document.createElement('div'),link=document.createElement('a');
+   sport.className='prediction-sport';sport.textContent=p.sport.toUpperCase()+' · PROVISIONAL';
+   name.textContent=p.label;
+   meta.textContent=p.event+' · Run '+new Date(p.created_at).toLocaleDateString('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short'});
+   pct.className='prediction-confidence';pct.textContent=p.pct.toFixed(1)+'%';
+   link.href=fixturePaths[p.sport];link.textContent='OPEN MODEL →';
+   left.append(sport,name,meta);right.append(pct,link);row.append(left,right);root.append(row);
+  }
+ }catch(e){root.textContent='Saved predictions unavailable: '+e.message;}
+}
+
 async function loadHomeOverview(user){
  try{
   const {data,error}=await db.from('bet_tracker').select('status,stake,settled_return').eq('user_id',user.id).limit(1000);
@@ -474,6 +524,7 @@ async function refresh(){
   }
   message('Welcome to the Prediction Hub.');
   void loadHomeOverview(user);
+  void loadTopPredictions(user);
   void loadHomeFixtures();
 }
 
