@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 24 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 25 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -83,6 +83,13 @@ th{color:#a9bad1}
     <button id="viewHistory" style="display:none">VIEW HISTORICAL SUMMARY</button>
     <p id="historyStatus" class="muted" role="status"></p>
     <div id="historyResults"></div>
+  </div>
+  <div class="panel">
+    <h2>Opponent-adjusted historical team ratings</h2>
+    <p class="muted">Full-season official final scores. Attack is adjusted for opponents' average goals conceded; defense is adjusted for opponents' average goals scored. Higher attack and lower defense are better. Goal rating = adjusted attack minus adjusted defense. These are descriptive goal-based ratings, NOT NHL V1.0 5v5 xG, goalie or overall model scores.</p>
+    <label>Historical season <select id="ratingSeason"><option value="20252026">2025–26</option><option value="20242025">2024–25</option></select></label>
+    <p id="ratingStatus" class="muted">Ratings load automatically after login.</p>
+    <div id="ratingResults" style="overflow-x:auto"></div>
   </div>
   <div class="panel">
     <h2>Verified NHL scoring baselines</h2>
@@ -287,6 +294,25 @@ $('viewHistory').onclick=async()=>{
   root.append(table);
  }catch(e){out.textContent='Historical summary unavailable: '+(e.message||String(e));}
 };
+async function loadHistoricalRatings(){
+ const out=$('ratingStatus'),root=$('ratingResults');root.replaceChildren();out.textContent='Loading opponent-adjusted ratings...';
+ try{
+  const {data,error}=await db.rpc('nhl_team_historical_ratings',{p_season:Number($('ratingSeason').value)});
+  if(error)throw Error(error.message);
+  out.textContent=(data||[]).length+' teams rated from official historical final scores. NHL V1.0 model remains unchanged.';
+  const table=document.createElement('table'),head=document.createElement('tr');
+  for(const h of ['Team','GP','W','L*','GF/G','GA/G','Home W/GP','Away W/GP','Adj attack','Adj defense','Goal rating'])addText(head,'th',h);
+  table.append(head);
+  for(const r of data||[]){
+   const tr=document.createElement('tr');
+   for(const v of [r.team,r.games,r.wins,r.losses,r.gf_per_game,r.ga_per_game,r.home_wins+'/'+r.home_games,r.away_wins+'/'+r.away_games,r.adjusted_attack,r.adjusted_defense,r.goal_rating])addText(tr,'td',String(v??'—'));
+   table.append(tr);
+  }
+  root.append(table);
+  const note=document.createElement('p');note.className='muted';note.textContent='*L includes all non-winning games, including overtime/shootout losses. Final-score data cannot reliably separate regulation and overtime losses. Opponent adjustment uses full-season opponent averages, not leave-one-out or time-decayed estimates.';root.append(note);
+ }catch(e){out.textContent='Historical ratings unavailable: '+(e.message||String(e));}
+}
+$('ratingSeason').onchange=loadHistoricalRatings;
 async function autoPopulateHistory(){
  const out=$('historyStatus');
  try{
@@ -454,6 +480,7 @@ async function start(){
     status('Approved member. Loading NHL predictions...');
     await Promise.race([loadPredictions(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Prediction loading timed out')),12000))]);
     autoPopulateHistory();
+    loadHistoricalRatings();
   }catch(e){
 
     status('NHL connection error: '+(e?.message||String(e)));
