@@ -175,13 +175,43 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
 .fixture-empty{font-size:12px;color:#a4bed2;padding:9px 2px}
 @media(max-width:850px){.performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.home-overview,.home-fixtures{padding:14px}.fixture-item{align-items:flex-start}.fixture-item strong{font-size:12px}}
+
+/* CPH Premium Crest brand system — gold, silver and deep graphite */
+:root{--hub-bg:#080e16;--hub-card:#141b24;--hub-border:#57482e;--hub-blue:#e7ba61;--hub-text:#f5f2e9;--hub-muted:#b5b9bf}
+html{background:#080e16}
+body{background:radial-gradient(ellipse at 75% -8%,#3b2d1b 0,transparent 38%),radial-gradient(ellipse at 5% 15%,#15212b 0,transparent 43%),#080e16;color:#f5f2e9}
+header.cph-site-header{display:flex;align-items:center;justify-content:space-between;gap:20px;background:linear-gradient(110deg,#0a1018,#171b20 65%,#0c121a);border-bottom:1px solid #8d6a33;padding:10px max(22px,calc((100vw - 1180px)/2));box-shadow:0 5px 35px #0008}
+.cph-brand{display:flex;align-items:center;gap:14px;text-decoration:none;color:#f3f0e9}
+.cph-brand img{width:76px;height:88px;object-fit:contain;filter:drop-shadow(0 3px 10px #d4a44b29)}
+.cph-brand span{display:flex;flex-direction:column;line-height:1.15;gap:4px}
+.cph-brand strong{font-size:clamp(19px,3vw,29px);font-weight:850;letter-spacing:.14em;color:#e8e5df}
+.cph-brand small{font-size:clamp(10px,1.5vw,14px);letter-spacing:.22em;color:#e7ba61;font-weight:750}
+.cph-brand em{font-size:9px;font-style:normal;letter-spacing:.26em;color:#92989e;margin-top:3px}
+header.cph-site-header .header-tracker{border:1px solid #96733d;color:#f1d8a3;background:#201c17;border-radius:9px;padding:11px 15px;white-space:nowrap}
+header.cph-site-header .header-tracker:hover{background:#3b2d19}
+.panel,.home-overview,.home-fixtures{background:linear-gradient(145deg,#171f29,#101720);border-color:#57482e;box-shadow:0 10px 28px #0004}
+.workspace-sidebar{background:linear-gradient(160deg,#161d25,#0d141c);border-color:#6e5532}
+.model-menu summary{color:#f3e6cd}
+.model-links a:hover,.sidebar-tracker:hover,.sidebar-about:hover{background:#3a2c1b;color:#ffe4a8}
+.dashboard-intro{border-left:3px solid #d8a74b}
+.eyebrow,.about-footer{color:#e1b768}
+.section-heading h2,.overview-title h2,.about-panel h2{color:#f4eee2}
+.sport,.performance-tile,.fixture-item{background:#111b25;border-color:#51442f}
+.sport:hover{border-color:#c39a52;box-shadow:0 9px 22px #0005}
+.sport a,button:not(.secondary):not(.danger):not(.fixture-filters button){background:linear-gradient(135deg,#f5d88c,#c9963d);color:#17130d}
+.sport a:hover,button:not(.secondary):not(.danger):hover{background:#ffe4a5;color:#17130d}
+.performance-tile strong{color:#f5e4bf}
+.fixture-filters button{background:#1b242e;border-color:#675032;color:#e1c999}
+.fixture-filters button.active{background:#5b421f;border-color:#d9ab55;color:#fff0cb}
+.fixture-item a,.overview-title>a,.sidebar-tracker,.sidebar-about{color:#e7bd6b}
+input,textarea,select{background:#0e1720;border-color:#695536}
+.status{border-color:#6a5634;border-left-color:#d5a449;background:#1c201e;color:#e7d6b5}
+a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
+@media(max-width:550px){header.cph-site-header{padding:9px 15px}.cph-brand img{width:57px;height:67px}.cph-brand{gap:7px}.cph-brand strong{font-size:17px;letter-spacing:.08em}.cph-brand small{font-size:9px;letter-spacing:.12em}.cph-brand em{display:none}header.cph-site-header .header-tracker{font-size:10px;padding:8px}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Connor's Prediction Hub</h1>
-  <p>Sports prediction &amp; analytics</p>
-<a class="header-tracker" href="./bet-tracker.html">Bet Tracker ↗</a></header>
+<header class="cph-site-header"><a href="./index.html" class="cph-brand" aria-label="Connor's Prediction Hub home"><img src="./assets/cph-crest.svg" alt="CPH gold and silver shield crest" width="76" height="88"><span><strong>CONNORS</strong><small>PREDICTION HUB</small><em>SPORTS ANALYTICS</em></span></a><a class="header-tracker" href="./bet-tracker.html">Bet Tracker ↗</a></header>
 <main>
 <div id="message" class="status" role="status">Connecting...</div>
 
