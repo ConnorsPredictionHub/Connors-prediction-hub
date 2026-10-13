@@ -319,7 +319,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
       </section>
       <section class="home-predictions" aria-labelledby="top-predictions-title">
         <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top 3 Model Predictions</h2><span class="prediction-kicker" id="predictionSourceLabel">TODAY + TOMORROW · AEST</span></div>
-        <p class="prediction-disclaimer">Ranks the three highest estimated selections across NHL, NFL, MLB and NBL for verified games today and tomorrow (Brisbane time). Sports can repeat when they rank highest. Provisional, uncalibrated probabilities, not validated betting value. No automatic bet placement.</p>
+        <p class="prediction-disclaimer">Ranks the three highest estimated selections across NHL, NFL, MLB and NBL when you click Refresh Predictions, for verified games today and tomorrow (Brisbane time). Sports can repeat when they rank highest. Provisional, uncalibrated probabilities, not validated betting value. No automatic bet placement.</p>
         <button type="button" id="refreshDailyPredictions" class="secondary daily-refresh">↻ Refresh Predictions</button><div id="topPredictions" class="prediction-list" aria-live="polite">Checking saved model predictions…</div>
         <div class="prediction-footer"><a href="./nhl.html">NHL</a><a href="./nfl.html">NFL</a><a href="./mlb.html">MLB</a><a href="./nbl.html">NBL</a></div>
       </section>
@@ -435,6 +435,12 @@ $('fixtureFilters').addEventListener('click',event=>{const button=event.target.c
 
 let dailyRunning=false;
 const dailyDay=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Brisbane',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+function showSavedDailyPredictions(user){
+ const root=$('topPredictions'),key='cph-daily-v3-'+user.id;
+ let cached=null;try{cached=JSON.parse(localStorage.getItem(key)||'null')}catch{}
+ if(cached?.picks&&cached.day===dailyDay(new Date()))displayDailyPredictions(cached.picks,cached.time);
+ else{$('predictionSourceLabel').textContent='MANUAL REFRESH';root.textContent='Click ↻ Refresh Predictions to check today and tomorrow’s games and generate your Top 3 picks.';}
+}
 async function refreshDailyPredictions(user,force=false){
  if(dailyRunning)return;
  const root=$('topPredictions'),button=$('refreshDailyPredictions'),key='cph-daily-v3-'+user.id,today=dailyDay(new Date()),tomorrow=dailyDay(new Date(Date.now()+86400000));
@@ -580,7 +586,7 @@ async function refresh(){
   }
   message('Welcome to the Prediction Hub.');
   void loadHomeOverview(user);
-  void refreshDailyPredictions(user);
+  showSavedDailyPredictions(user);
   void loadHomeFixtures();
 }
 
