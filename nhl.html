@@ -37,7 +37,9 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 7 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
+<div id="diagnostic" class="muted" style="font-size:12px">Diagnostic: waiting for page scripts...</div>
 
 <section id="content" class="hidden">
   <div class="grid">
@@ -67,20 +69,17 @@ th{color:#a9bad1}
 </main>
 
 <script>
-window.nhlStatusTimer = setTimeout(() => {
-  const box = document.getElementById('status');
-  if (box && box.textContent === 'Checking account access...') {
-    box.textContent = 'The NHL account check did not start. A browser extension, network filter, or script-loading issue may be blocking it.';
-  }
-}, 9000);
-window.addEventListener('error', event => {
-  const box = document.getElementById('status');
-  if (box) box.textContent = 'Page script error: ' + (event.message || 'Unable to load a required script.');
-});
-window.addEventListener('unhandledrejection', event => {
-  const box = document.getElementById('status');
-  if (box) box.textContent = 'Connection error: ' + (event.reason?.message || String(event.reason) || 'Unknown error');
-});
+(function(){
+ const d=document.getElementById('diagnostic');
+ let seconds=0;
+ d.textContent='Diagnostic: page script running (0 seconds)';
+ setInterval(()=>{
+   seconds++;
+   d.textContent='Diagnostic: page script running ('+seconds+' seconds) · status: '+document.getElementById('status').textContent;
+ },1000);
+ window.addEventListener('error',e=>{d.textContent='Script error: '+(e.message||'unknown');});
+ window.addEventListener('unhandledrejection',e=>{d.textContent='Async error: '+(e.reason?.message||String(e.reason));});
+})();
 </script>
 <script type="module">
 import {createClient} from
@@ -92,7 +91,7 @@ const db=createClient(
 );
 
 const $=id=>document.getElementById(id);
-const status=text=>{clearTimeout(window.nhlStatusTimer);$('status').textContent=text;};
+const status=text=>{$('status').textContent=text;};
 
 function addText(parent,tag,value,className=''){
   const el=document.createElement(tag);
