@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 26 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 28 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -72,7 +72,7 @@ th{color:#a9bad1}
     <p class="muted">Prepares a verified-fixture research request for ChatGPT. Automated NHL V1.0 calculations are not yet implemented; no simulated results are fabricated.</p>
   </div>
 
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>Historical NHL results · Research database</h2>
     <p class="muted">The dashboard automatically retrieves and stores official historical NHL regular-season results for research. The first import can take a little time. Historical goals are not 5v5 expected goals.</p>
     <div class="grid" style="display:none">
@@ -84,20 +84,20 @@ th{color:#a9bad1}
     <p id="historyStatus" class="muted" role="status"></p>
     <div id="historyResults"></div>
   </div>
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>Opponent-adjusted historical team ratings</h2>
     <p class="muted">Full-season official final scores. Attack is adjusted for opponents' average goals conceded; defense is adjusted for opponents' average goals scored. Higher attack and lower defense are better. Goal rating = adjusted attack minus adjusted defense. These are descriptive goal-based ratings, NOT NHL V1.0 5v5 xG, goalie or overall model scores.</p>
     <label>Historical season <select id="ratingSeason"><option value="20252026">2025–26</option><option value="20242025">2024–25</option></select></label>
     <p id="ratingStatus" class="muted">Ratings load automatically after login.</p>
     <div id="ratingResults" style="overflow-x:auto"></div>
   </div>
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>Official NHL advanced research · Special teams</h2>
     <p class="muted">NHL Stats REST reports load automatically. Power play, penalty kill and team summary are verified source datasets; 5v5 xG, goals saved above expected and confirmed starting goalies are not supplied by these reports. The locked NHL V1.0 weights are unchanged.</p>
     <p id="advancedStatus" class="muted">Research data loads automatically after login.</p>
     <div id="advancedResults" style="overflow-x:auto"></div>
   </div>
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>Verified NHL scoring baselines</h2>
     <p class="muted">Live official NHL standings: games played, goals scored and conceded. These are all-strength descriptive statistics, not the 12-component model, opponent-adjusted xG or calibrated predictions.</p>
     <button id="loadBaselines">LOAD VERIFIED NHL TEAM DATA</button>
