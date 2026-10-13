@@ -223,6 +223,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
 .prediction-footer{display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid #55442c;padding-top:13px;margin-top:14px}
 .prediction-footer a{color:#eac47b;font-size:11px;font-weight:700;text-decoration:none}
 @media(max-width:460px){.prediction-row{flex-wrap:wrap}.prediction-kicker{font-size:9px}}
+.prediction-empty{padding:17px;background:#131a22;border:1px dashed #a17a3d;border-radius:12px}.prediction-empty strong{color:#f3d394;font-size:14px}.prediction-empty p{font-size:12px;color:#c3b8a5;margin:8px 0 13px}.prediction-empty a{color:#f4c96d;text-decoration:none;font-size:12px;font-weight:800}.home-predictions{scroll-margin-top:25px}
 </style>
 </head>
 <body>
@@ -269,6 +270,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
           <a href="./greyhounds.html">🐕 <span>Greyhounds <small>Original</small></span> <span>↗</span></a>
         </nav>
       </details>
+      <a class="sidebar-about" href="#top-predictions-title">★ &nbsp; Top Predictions <span>↗</span></a>
       <a class="sidebar-tracker" href="./bet-tracker.html">▤ &nbsp; Bet Tracker <span>↗</span></a>
       <a class="sidebar-about" href="#account-settings">⚙ &nbsp; Account Settings <span>↗</span></a>
       <a class="sidebar-about" href="#about-us">About the Hub <span>↗</span></a>
@@ -315,9 +317,9 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
         <p class="overview-note" id="homeBetNote">Loading your recorded bets…</p>
       </section>
       <section class="home-predictions" aria-labelledby="top-predictions-title">
-        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top Model Predictions</h2><span class="prediction-kicker">LATEST SAVED RUNS</span></div>
+        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top Model Predictions</h2><span class="prediction-kicker" id="predictionSourceLabel">PERSONAL MODEL RESULTS</span></div>
         <p class="prediction-disclaimer">Highest available estimated probabilities from your saved automated model runs. Provisional, uncalibrated estimates — not verified betting value or guaranteed outcomes. Match dates must be checked before betting.</p>
-        <div id="topPredictions" class="prediction-list" aria-live="polite">Loading your saved predictions…</div>
+        <div id="topPredictions" class="prediction-list" aria-live="polite">Checking saved model predictions…</div>
         <div class="prediction-footer"><a href="./nhl.html">NHL</a><a href="./nfl.html">NFL</a><a href="./mlb.html">MLB</a><a href="./nbl.html">NBL</a></div>
       </section>
       <section class="home-fixtures" aria-labelledby="home-fixtures-heading">
@@ -431,7 +433,8 @@ function renderHomeFixtures(){
 $('fixtureFilters').addEventListener('click',event=>{const button=event.target.closest('button[data-fixture-sport]');if(!button)return;homeFixtureSport=button.dataset.fixtureSport;for(const b of $('fixtureFilters').querySelectorAll('button'))b.classList.toggle('active',b===button);renderHomeFixtures();});
 
 async function loadTopPredictions(user){
- const root=$('topPredictions');root.textContent='Loading your saved predictions…';
+ const root=$('topPredictions'),status=$('predictionSourceLabel');
+ root.textContent='Checking saved model predictions…';
  try{
   const {data,error}=await db.from('sport_model_runs').select('sport,event_name,model_status,output,created_at').eq('user_id',user.id).in('sport',['nhl','nfl','mlb','nbl']).order('created_at',{ascending:false}).limit(100);
   if(error)throw error;
@@ -442,20 +445,33 @@ async function loadTopPredictions(user){
    const key=sport+'|'+event.toLowerCase();if(seen.has(key))continue;seen.add(key);
    const raw=Array.isArray(output.markets)?output.markets:Array.isArray(output.picks)?output.picks:[];
    const options=raw.map(p=>{const label=String(p.selection||p.label||'').trim(),n=Number(p.probability),pct=n<=1?n*100:n;return {label,pct};}).filter(p=>p.label&&Number.isFinite(p.pct)&&p.pct>0&&p.pct<=100).sort((a,b)=>b.pct-a.pct);
-   if(options.length)picks.push({sport,event,model_status:run.model_status,created_at:run.created_at,...options[0]});
+   if(options.length)picks.push({sport,event,created_at:run.created_at,...options[0]});
   }
   picks.sort((a,b)=>b.pct-a.pct);root.replaceChildren();
-  if(!picks.length){const empty=document.createElement('p');empty.className='fixture-empty';empty.textContent='No saved model predictions with calculated probabilities yet. Run an NHL, NFL, MLB or NBL prediction to populate this section.';root.append(empty);return;}
+  status.textContent=picks.length?picks.length+' SAVED MATCHUP'+(picks.length===1?'':'S'):'NO SAVED PICKS YET';
+  if(!picks.length){
+   const empty=document.createElement('div');empty.className='prediction-empty';
+   const heading=document.createElement('strong');heading.textContent='Your top picks will appear here';
+   const note=document.createElement('p');note.textContent=(data||[]).length?'Your saved model runs do not contain usable selection probabilities yet.':'No saved automated predictions were found for this account. Run a model prediction to start building your shortlist.';
+   const link=document.createElement('a');link.href='./nfl.html';link.textContent='RUN AN NFL PREDICTION →';
+   empty.append(heading,note,link);root.append(empty);return;
+  }
   for(const p of picks.slice(0,5)){
-   const row=document.createElement('div');row.className='prediction-row';const left=document.createElement('div'),sport=document.createElement('span'),name=document.createElement('strong'),meta=document.createElement('small'),right=document.createElement('div'),pct=document.createElement('div'),link=document.createElement('a');
+   const row=document.createElement('div');row.className='prediction-row',left=document.createElement('div'),sport=document.createElement('span'),name=document.createElement('strong'),meta=document.createElement('small'),right=document.createElement('div'),pct=document.createElement('div'),link=document.createElement('a');
    sport.className='prediction-sport';sport.textContent=p.sport.toUpperCase()+' · PROVISIONAL';
    name.textContent=p.label;
-   meta.textContent=p.event+' · Run '+new Date(p.created_at).toLocaleDateString('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short'});
+   meta.textContent=p.event+' · Saved '+new Date(p.created_at).toLocaleDateString('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',year:'numeric'});
    pct.className='prediction-confidence';pct.textContent=p.pct.toFixed(1)+'%';
    link.href=fixturePaths[p.sport];link.textContent='OPEN MODEL →';
    left.append(sport,name,meta);right.append(pct,link);row.append(left,right);root.append(row);
   }
- }catch(e){root.textContent='Saved predictions unavailable: '+e.message;}
+ }catch(e){
+  status.textContent='DATA UNAVAILABLE';
+  root.replaceChildren();
+  const p=document.createElement('p');p.className='fixture-empty';p.textContent='Could not load your saved predictions: '+e.message;
+  const a=document.createElement('a');a.href='./nfl.html';a.textContent='OPEN NFL MODEL →';
+  root.append(p,a);
+ }
 }
 
 async function loadHomeOverview(user){
