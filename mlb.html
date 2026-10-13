@@ -30,6 +30,11 @@ function renderBetBuilder(data){
    const note=document.createElement('p');note.textContent='No combined probability or bookmaker odds calculated. Check market availability and correlations before placing a bet.';slip.append(note);
    const copy=document.createElement('button');copy.textContent='COPY '+(selected.length===1?'SINGLE':'MULTI')+' SELECTION';
    copy.onclick=async()=>{const text=selected.map(x=>x.event+' — '+x.selection).join(' + ');try{await navigator.clipboard.writeText(text);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};slip.append(copy);
+   const track=document.createElement('button');track.textContent='ADD TO BET TRACKER';track.onclick=()=>{
+    const url=new URL('./bet-tracker.html',location.href);
+    url.searchParams.set('sport',sport);url.searchParams.set('legs',JSON.stringify(selected.map(x=>x.event+' — '+x.selection)));
+    location.href=url.toString();
+   };slip.append(track);
   }
  };
  choices.forEach((item,i)=>{
