@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 18 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 19 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -72,6 +72,13 @@ th{color:#a9bad1}
     <p class="muted">Prepares a verified-fixture research request for ChatGPT. Automated NHL V1.0 calculations are not yet implemented; no simulated results are fabricated.</p>
   </div>
 
+  <div class="panel">
+    <h2>Verified NHL scoring baselines</h2>
+    <p class="muted">Live official NHL standings: games played, goals scored and conceded. These are all-strength descriptive statistics, not the 12-component model, opponent-adjusted xG or calibrated predictions.</p>
+    <button id="loadBaselines">LOAD VERIFIED NHL TEAM DATA</button>
+    <p id="baselineStatus" class="muted" role="status"></p>
+    <div id="baselineData"></div>
+  </div>
   <div class="panel">
     <h2>NHL V1.0 · Provisional probability calculator</h2>
     <p class="muted">Enter independently researched expected goals for the selected home and away teams. This is a Poisson calculation tool, NOT a fully calibrated 12-factor model or a verified prediction. No simulation or odds lookup is performed.</p>
@@ -219,6 +226,25 @@ async function loadFixtures(){
   select.replaceChildren();select.add(new Option('Schedule unavailable',''));
  }finally{clearTimeout(timeout);}
 }
+$('loadBaselines').onclick=async()=>{
+ const out=$('baselineStatus'),root=$('baselineData'),button=$('loadBaselines');
+ root.replaceChildren();button.disabled=true;out.textContent='Loading official NHL standings...';
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw Error('Sign in required');
+  const r=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-team-baselines',{headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token}});
+  const p=await r.json();if(!r.ok)throw Error(p.error||'Standings unavailable');
+  const fmt=v=>Number.isFinite(v)?v.toFixed(2):'Unavailable';
+  out.textContent='Official NHL standings retrieved '+new Date(p.retrieved_at).toLocaleString('en-AU')+'. League goals per team-game: '+fmt(p.league_baseline.goals_per_team_game)+'.';
+  const table=document.createElement('table'),head=document.createElement('tr');
+  for(const h of ['Team','GP','GF/GP','GA/GP'])addText(head,'th',h);
+  table.append(head);
+  for(const t of p.teams){const tr=document.createElement('tr');for(const v of [t.name||t.abbreviation,String(t.games_played),fmt(t.goals_for_per_game),fmt(t.goals_against_per_game)])addText(tr,'td',v);table.append(tr);}
+  root.append(table);
+  addText(root,'p','Research gaps: '+p.missing.join('; ')+'. These statistics are NOT automatic expected-goal inputs.','muted');
+ }catch(e){out.textContent='Data unavailable: '+(e.message||String(e));}
+ finally{button.disabled=false;}
+};
 $('calculateProbabilities').onclick=async()=>{
  const out=$('calculatorStatus'),root=$('calculatorResults'),btn=$('calculateProbabilities');
  root.replaceChildren();
