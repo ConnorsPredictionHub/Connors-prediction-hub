@@ -224,6 +224,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
 .prediction-footer a{color:#eac47b;font-size:11px;font-weight:700;text-decoration:none}
 @media(max-width:460px){.prediction-row{flex-wrap:wrap}.prediction-kicker{font-size:9px}}
 .prediction-empty{padding:17px;background:#131a22;border:1px dashed #a17a3d;border-radius:12px}.prediction-empty strong{color:#f3d394;font-size:14px}.prediction-empty p{font-size:12px;color:#c3b8a5;margin:8px 0 13px}.prediction-empty a{color:#f4c96d;text-decoration:none;font-size:12px;font-weight:800}.home-predictions{scroll-margin-top:25px}
+.daily-refresh{margin:0 0 14px;padding:9px 13px;font-size:12px;background:#3b3021!important;color:#f2d497!important;border:1px solid #9a753c!important}
 </style>
 </head>
 <body>
@@ -317,9 +318,9 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#f0c76c}
         <p class="overview-note" id="homeBetNote">Loading your recorded bets…</p>
       </section>
       <section class="home-predictions" aria-labelledby="top-predictions-title">
-        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top Model Predictions</h2><span class="prediction-kicker" id="predictionSourceLabel">PERSONAL MODEL RESULTS</span></div>
-        <p class="prediction-disclaimer">Highest available estimated probabilities from your saved automated model runs. Provisional, uncalibrated estimates — not verified betting value or guaranteed outcomes. Match dates must be checked before betting.</p>
-        <div id="topPredictions" class="prediction-list" aria-live="polite">Checking saved model predictions…</div>
+        <div class="overview-title"><h2 id="top-predictions-title"><span class="gold-star">★</span> Top Model Predictions</h2><span class="prediction-kicker" id="predictionSourceLabel">TODAY + TOMORROW · AEST</span></div>
+        <p class="prediction-disclaimer">Automatically checks verified games today and tomorrow when you visit each day. Provisional, uncalibrated probabilities, not validated betting value. No automatic bet placement.</p>
+        <button type="button" id="refreshDailyPredictions" class="secondary daily-refresh">↻ Refresh Predictions</button><div id="topPredictions" class="prediction-list" aria-live="polite">Checking saved model predictions…</div>
         <div class="prediction-footer"><a href="./nhl.html">NHL</a><a href="./nfl.html">NFL</a><a href="./mlb.html">MLB</a><a href="./nbl.html">NBL</a></div>
       </section>
       <section class="home-fixtures" aria-labelledby="home-fixtures-heading">
@@ -432,6 +433,45 @@ function renderHomeFixtures(){
 }
 $('fixtureFilters').addEventListener('click',event=>{const button=event.target.closest('button[data-fixture-sport]');if(!button)return;homeFixtureSport=button.dataset.fixtureSport;for(const b of $('fixtureFilters').querySelectorAll('button'))b.classList.toggle('active',b===button);renderHomeFixtures();});
 
+let dailyRunning=false;
+const dailyDay=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Brisbane',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+async function refreshDailyPredictions(user,force=false){
+ if(dailyRunning)return;
+ const root=$('topPredictions'),button=$('refreshDailyPredictions'),key='cph-daily-v3-'+user.id,today=dailyDay(new Date()),tomorrow=dailyDay(new Date(Date.now()+86400000));
+ let cached=null;try{cached=JSON.parse(localStorage.getItem(key)||'null')}catch{}
+ if(!force&&cached?.day===today){displayDailyPredictions(cached.picks,cached.time);return;}
+ dailyRunning=true;button.disabled=true;button.textContent='Running predictions…';root.textContent='Checking today and tomorrow’s fixtures…';
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw Error('Sign-in required');
+  const headers={apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},base='https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/';
+  const sports=['nhl','nfl','mlb','nbl'],models={nhl:'nhl-matchup-provisional',nfl:'nfl-provisional-points',mlb:'mlb-provisional-probabilities',nbl:'nbl-provisional-probabilities'};
+  const feeds=await Promise.allSettled(sports.map(async sport=>{
+   const r=await fetch(base+sport+'-fixtures',{headers,signal:AbortSignal.timeout(16000)});if(!r.ok)throw Error('Fixture feed unavailable');
+   const j=await r.json();return (j.games||[]).map(g=>({sport,date:sport==='nhl'?g.startTimeUTC:g.date,home:sport==='nhl'?g.homeTeam?.abbrev:g.home,away:sport==='nhl'?g.awayTeam?.abbrev:g.away,homeCode:g.home_abbrev,awayCode:g.away_abbrev})).filter(g=>g.home&&g.away&&g.date&&[today,tomorrow].includes(dailyDay(new Date(g.date)))&&Date.parse(g.date)>Date.now()-3600000);
+  }));
+  if(feeds.every(x=>x.status==='rejected'))throw Error('Fixture services unavailable');
+  const games=feeds.filter(x=>x.status==='fulfilled').flatMap(x=>x.value).slice(0,16);
+  const results=await Promise.allSettled(games.map(async g=>{
+   const r=await fetch(base+models[g.sport],{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({home:g.homeCode||g.home,away:g.awayCode||g.away}),signal:AbortSignal.timeout(23000)});
+   if(!r.ok)throw Error('Prediction model unavailable');
+   const j=await r.json(),raw=Array.isArray(j.markets)?j.markets:Array.isArray(j.picks)?j.picks:[];
+   const eligible=raw.map(x=>{const n=Number(x.probability);return {label:String(x.label||x.selection||''),pct:n<=1?n*100:n}}).filter(x=>x.label&&Number.isFinite(x.pct)&&x.pct>=55&&x.pct<=85).sort((a,b)=>b.pct-a.pct);
+   return eligible.length?{...eligible[0],sport:g.sport,date:g.date,event:g.away+' @ '+g.home}:null;
+  }));
+  if(games.length&&results.every(x=>x.status==='rejected'))throw Error('Matchup models unavailable');
+  const picks=results.filter(x=>x.status==='fulfilled'&&x.value).map(x=>x.value),time=new Date().toISOString();
+  localStorage.setItem(key,JSON.stringify({day:today,picks,time}));displayDailyPredictions(picks,time);
+ }catch(e){if(cached?.picks)displayDailyPredictions(cached.picks,cached.time);else root.textContent='Unable to refresh predictions: '+e.message;}
+ finally{dailyRunning=false;button.disabled=false;button.textContent='↻ Refresh Predictions';}
+}
+function displayDailyPredictions(picks,time){
+ const root=$('topPredictions');root.replaceChildren();
+ const today=dailyDay(new Date()),tomorrow=dailyDay(new Date(Date.now()+86400000));
+ const list=picks.filter(p=>[today,tomorrow].includes(dailyDay(new Date(p.date)))&&Date.parse(p.date)>Date.now()-3600000).sort((a,b)=>b.pct-a.pct).slice(0,5);
+ $('predictionSourceLabel').textContent=list.length?'UPDATED '+new Date(time).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',minute:'2-digit'}):'NO QUALIFYING BET';
+ if(!list.length){root.textContent='No qualifying bet for verified games today or tomorrow. Try Refresh Predictions later.';return;}
+ for(const p of list){const row=document.createElement('div');row.className='prediction-row';const left=document.createElement('div'),sport=document.createElement('span'),name=document.createElement('strong'),meta=document.createElement('small'),right=document.createElement('div'),pct=document.createElement('div'),link=document.createElement('a');sport.className='prediction-sport';sport.textContent=p.sport.toUpperCase()+' · PROVISIONAL';name.textContent=p.label;meta.textContent=p.event+' · '+new Date(p.date).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});pct.className='prediction-confidence';pct.textContent=p.pct.toFixed(1)+'%';link.href=fixturePaths[p.sport];link.textContent='OPEN MODEL →';left.append(sport,name,meta);right.append(pct,link);row.append(left,right);root.append(row);}
+}
 async function loadTopPredictions(user){
  const root=$('topPredictions'),status=$('predictionSourceLabel');
  root.textContent='Checking saved model predictions…';
@@ -540,7 +580,7 @@ async function refresh(){
   }
   message('Welcome to the Prediction Hub.');
   void loadHomeOverview(user);
-  void loadTopPredictions(user);
+  void refreshDailyPredictions(user);
   void loadHomeFixtures();
 }
 
@@ -628,6 +668,7 @@ document.querySelectorAll('.logout').forEach(button=>{
 $('refresh').onclick=refresh;
 $('reloadUsers').onclick=loadUsers;
 
+$('refreshDailyPredictions').addEventListener('click',async()=>{const {data:{user}}=await db.auth.getUser();if(user)await refreshDailyPredictions(user,true);});
 db.auth.onAuthStateChange(()=>{
   setTimeout(refresh,0);
 });
