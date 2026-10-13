@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 28 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 29 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -54,8 +54,8 @@ th{color:#a9bad1}
     <p id="fixtureStatus" class="muted">Loading official NHL fixtures...</p>
     <label for="gameSelect">Select upcoming game</label>
     <select id="gameSelect" style="display:block;width:100%;max-width:650px;margin:10px 0 16px;padding:12px;background:#1b2e49;color:#fff;border:1px solid #49627d;border-radius:8px"><option value="">Loading games...</option></select>
-    <button id="runPrediction" disabled>PREPARE NHL V1.0 PREDICTION</button>
-    <p id="prepared" class="muted" role="status"></p>
+    <button id="runPrediction" disabled>RUN PROVISIONAL NHL PREDICTION</button>
+    <p id="prepared" class="muted" role="status"></p><div id="matchupResult" style="overflow-x:auto" aria-live="polite"></div>
     <div class="panel" style="margin-top:18px;background:#182a43">
       <h3>Save your NHL V1.0 prediction</h3>
       <p class="muted">Run the research in ChatGPT first, then enter the confirmed output here. Only you can view the predictions saved to your account.</p>
@@ -69,7 +69,7 @@ th{color:#a9bad1}
       <button id="savePrediction" disabled>SAVE PREDICTION</button>
       <p id="saveStatus" class="muted" role="status"></p>
     </div>
-    <p class="muted">Prepares a verified-fixture research request for ChatGPT. Automated NHL V1.0 calculations are not yet implemented; no simulated results are fabricated.</p>
+    <p class="muted">Runs an automated historical-goals baseline on the website. This is provisional and does not claim to be the complete 12-factor NHL V1.0 model. No bets are saved automatically.</p>
   </div>
 
   <div class="panel" style="display:none">
@@ -444,18 +444,28 @@ $('savePrediction').onclick=async()=>{
 $('runPrediction').onclick=async()=>{
  const game=upcomingGames.find(g=>String(g.id)===$('gameSelect').value);
  if(!game)return;
- const away=game.awayTeam.placeName?.default||game.awayTeam.abbrev;
- const home=game.homeTeam.placeName?.default||game.homeTeam.abbrev;
- const date=new Date(game.startTimeUTC).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'full',timeStyle:'short'});
- const prompt='RUN NHL V1.0 FULL PREDICTION AND SIMULATION for '+away+' @ '+home+', Australian match date/time '+date+'. Research verified teams, form, injuries, projected/confirmed goalies, scoring, rest, markets and odds. Preserve my locked NHL V1.0 model methodology. Show predicted score, ranked safer selections, BTTS 2+ picks, two correlated multis, and confidence caveats. Do not invent unavailable metrics or freeze results without confirmation.';
+ const button=$('runPrediction'),out=$('prepared'),root=$('matchupResult');
+ button.disabled=true;root.replaceChildren();out.textContent='Calculating historical-goals matchup baseline...';
  try{
-  await navigator.clipboard.writeText(prompt);
-  $('prepared').textContent='Research request copied. Paste it into your NHL V1.0 ChatGPT prediction chat to run the model.';
- }catch(error){
-  $('prepared').textContent='Copy blocked by browser. Select and copy the request below:';
-  const area=document.createElement('textarea');area.value=prompt;area.rows=6;area.style.width='100%';
-  $('prepared').after(area);area.select();
- }
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw Error('Sign in required');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+  let response;
+  try{response=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-matchup-provisional',{
+   method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},
+   body:JSON.stringify({home:game.homeTeam.abbrev,away:game.awayTeam.abbrev}),signal:controller.signal
+  });}finally{clearTimeout(timer);}
+  const p=await response.json();if(!response.ok)throw Error(p.error||'Prediction service HTTP '+response.status);
+  out.textContent='PROVISIONAL · Historical goals only · Not the calibrated 12-factor NHL V1.0 model. No predictions saved.';
+  const heading=document.createElement('h3');heading.textContent=p.away+' @ '+p.home+' — projected score '+p.away+' '+p.predicted_score.away+' : '+p.home+' '+p.predicted_score.home;root.append(heading);
+  const details=document.createElement('p');details.textContent='Expected goals: '+p.away+' '+p.expected_goals.away+' · '+p.home+' '+p.expected_goals.home+'. Regulation win: '+p.away+' '+p.regulation.away_win+'% · '+p.home+' '+p.regulation.home_win+'% · tied after regulation '+p.regulation.tie+'%.';root.append(details);
+  const table=document.createElement('table'),header=document.createElement('tr');
+  for(const title of ['Rank','Selection','Model-implied probability','Fair odds (not bookmaker)'])addText(header,'th',title);table.append(header);
+  for(const [i,m] of p.markets.entries()){const tr=document.createElement('tr');for(const v of [i+1,m.label,m.probability+'%',m.fair_odds])addText(tr,'td',String(v));table.append(tr);}
+  root.append(table);
+  const combo=document.createElement('p');combo.textContent='Correlated joint market (calculated together): '+p.combo.label+' — '+p.combo.probability+'%, model fair odds '+p.combo.fair_odds+'.';root.append(combo);
+  const caveat=document.createElement('p');caveat.className='muted';caveat.textContent='Missing: '+p.missing.join(', ')+'. '+p.warning;root.append(caveat);
+ }catch(e){out.textContent='Prediction unavailable: '+(e.message||String(e));}
+ finally{button.disabled=false;}
 };
 async function start(){
   let phase='Starting';
