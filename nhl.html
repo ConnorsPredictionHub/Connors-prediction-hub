@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 30 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard · Select game → Run prediction → Choose bets → Review slip</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -104,7 +104,7 @@ th{color:#a9bad1}
     <p id="baselineStatus" class="muted" role="status"></p>
     <div id="baselineData"></div>
   </div>
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>NHL V1.0 · Provisional probability calculator</h2>
     <p class="muted">Enter independently researched expected goals for the selected home and away teams. This is a Poisson calculation tool, NOT a fully calibrated 12-factor model or a verified prediction. No simulation or odds lookup is performed.</p>
     <div class="grid">
@@ -115,13 +115,13 @@ th{color:#a9bad1}
     <p id="calculatorStatus" class="muted" role="status"></p>
     <div id="calculatorResults"></div>
   </div>
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>My Saved NHL Predictions</h2>
     <button id="refresh">Refresh Predictions</button>
     <div id="predictions"></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" style="display:none">
     <h2>Model Performance</h2>
     <p>BTTS 2+ accuracy, selection hit rates and ROI will appear once verified prediction results are stored and settled.</p>
   </div>
