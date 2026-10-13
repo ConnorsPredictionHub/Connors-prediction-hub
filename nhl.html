@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 16 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 18 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -72,6 +72,17 @@ th{color:#a9bad1}
     <p class="muted">Prepares a verified-fixture research request for ChatGPT. Automated NHL V1.0 calculations are not yet implemented; no simulated results are fabricated.</p>
   </div>
 
+  <div class="panel">
+    <h2>NHL V1.0 · Provisional probability calculator</h2>
+    <p class="muted">Enter independently researched expected goals for the selected home and away teams. This is a Poisson calculation tool, NOT a fully calibrated 12-factor model or a verified prediction. No simulation or odds lookup is performed.</p>
+    <div class="grid">
+      <label>Home expected goals (λ)<input id="lambdaHome" type="number" min="0.01" max="10" step="0.01" placeholder="Researched λ" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+      <label>Away expected goals (λ)<input id="lambdaAway" type="number" min="0.01" max="10" step="0.01" placeholder="Researched λ" style="display:block;width:100%;padding:10px;margin-top:6px"></label>
+    </div>
+    <button id="calculateProbabilities">CALCULATE PROVISIONAL PROBABILITIES</button>
+    <p id="calculatorStatus" class="muted" role="status"></p>
+    <div id="calculatorResults"></div>
+  </div>
   <div class="panel">
     <h2>My Saved NHL Predictions</h2>
     <button id="refresh">Refresh Predictions</button>
@@ -208,6 +219,36 @@ async function loadFixtures(){
   select.replaceChildren();select.add(new Option('Schedule unavailable',''));
  }finally{clearTimeout(timeout);}
 }
+$('calculateProbabilities').onclick=async()=>{
+ const out=$('calculatorStatus'),root=$('calculatorResults'),btn=$('calculateProbabilities');
+ root.replaceChildren();
+ const home=$('lambdaHome').value,away=$('lambdaAway').value;
+ if(!home||!away){out.textContent='Enter both independently researched expected-goal values.';return;}
+ btn.disabled=true;out.textContent='Calculating provisional probabilities...';
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw new Error('Sign in required');
+  const res=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-provisional-probabilities',{
+   method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},
+   body:JSON.stringify({lambda_home:Number(home),lambda_away:Number(away)})
+  });
+  const p=await res.json();if(!res.ok)throw new Error(p.error||'Calculation unavailable');
+  const pct=v=>(v*100).toFixed(1)+'%';
+  const items=[
+   ['Most likely exact score (home–away)',p.most_likely_exact_score.home+'–'+p.most_likely_exact_score.away+' ('+pct(p.most_likely_exact_score.p)+')'],
+   ['Home regulation win',pct(p.regulation_win.home)],['Away regulation win',pct(p.regulation_win.away)],['Regulation tie',pct(p.regulation_win.tie)],
+   ['BTTS 2+ goals',pct(p.btts_2plus)],
+   ['Home 2+ goals',pct(p.team_totals.home_2plus)],['Away 2+ goals',pct(p.team_totals.away_2plus)],
+   ['Over 4.5 goals (regulation)',pct(p.game_totals.over_4.5)],
+   ['Joint BTTS 2+ AND Over 4.5',pct(p.example_joint_multi.probability)+' · fair odds '+p.example_joint_multi.fair_decimal_odds.toFixed(2)]
+  ];
+  const table=document.createElement('table');
+  for(const [label,value] of items){const tr=document.createElement('tr');addText(tr,'td',label);addText(tr,'td',value);table.append(tr);}
+  root.append(table);
+  out.textContent='PROVISIONAL · Independent Poisson · User-supplied λ · Regulation only · Not calibrated. No bookmaker prices verified.';
+ }catch(e){out.textContent='Calculation failed: '+(e.message||String(e));}
+ finally{btn.disabled=false;}
+};
 $('savePrediction').onclick=async()=>{
  const out=$('saveStatus'),button=$('savePrediction');
  const game=upcomingGames.find(g=>String(g.id)===$('gameSelect').value);
