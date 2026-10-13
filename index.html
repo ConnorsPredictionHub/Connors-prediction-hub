@@ -91,6 +91,24 @@ header p{margin:2px 0 0}
 footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
 @media(max-width:800px){#dashboard>.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){#dashboard>.grid{grid-template-columns:1fr 1fr;gap:10px}.sport{min-height:180px;padding:15px}.sport .emoji{font-size:25px;margin-bottom:8px}.sport h3{font-size:16px}.sport p{margin-bottom:12px}.sport a{font-size:10px;padding:11px 5px}.dashboard-intro{align-items:flex-start;padding:19px;flex-direction:column}.dashboard-intro .logout{align-self:flex-start}header{align-items:flex-start}.header-tracker{font-size:12px}}
+
+/* Compact admin management: collapsed until explicitly opened. */
+.admin-area{margin:24px 0 0}
+.admin-disclosure{background:#101f33;border:1px solid #29435e;border-radius:14px;overflow:hidden}
+.admin-disclosure>summary{display:flex;align-items:center;gap:13px;padding:16px 19px;cursor:pointer;list-style:none;user-select:none}
+.admin-disclosure>summary::-webkit-details-marker{display:none}
+.admin-disclosure>summary:hover{background:#162b44}
+.admin-disclosure>summary strong{display:block;font-size:14px;color:#e6f4ff}
+.admin-disclosure>summary small{display:block;color:#90a9c2;font-size:12px;margin-top:2px}
+.admin-summary-icon{display:grid;place-items:center;width:35px;height:35px;background:#193a55;border-radius:9px;color:#7bd8ff;font-size:20px}
+.admin-chevron{margin-left:auto;color:#a8cde8;font-size:24px;transition:transform .15s}
+.admin-disclosure[open] .admin-chevron{transform:rotate(180deg)}
+.admin-inner{border-top:1px solid #29435e;padding:16px 19px 19px}
+.admin-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.admin-toolbar h2{font-size:17px;margin:0}
+.admin-toolbar button{font-size:12px}
+.admin-inner .user{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;font-size:13px}
+.admin-inner .user button{font-size:12px;margin:0}
 </style>
 </head>
 <body>
@@ -142,10 +160,14 @@ footer{font-size:12px;border-top:1px solid #1c344c;margin-top:45px}
   
 </section>
 
-<section id="admin" class="panel hidden">
-  <h2>Administrator — Member Approvals</h2>
-  <button id="reloadUsers">Refresh Users</button>
-  <div id="users"></div>
+<section id="admin" class="admin-area hidden">
+  <details class="admin-disclosure">
+    <summary><span class="admin-summary-icon">⚙</span><span><strong>Member Management</strong><small>Approve and manage member access</small></span><span class="admin-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="admin-inner">
+      <div class="admin-toolbar"><h2>Member Approvals</h2><button id="reloadUsers" class="secondary">Refresh Members</button></div>
+      <div id="users"></div>
+    </div>
+  </details>
 </section>
 </main>
 <footer>Connor's Prediction Hub · Sports Analytics</footer>
