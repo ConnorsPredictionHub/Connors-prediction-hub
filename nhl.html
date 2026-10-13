@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 20 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 21 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -104,6 +104,23 @@ th{color:#a9bad1}
 </main>
 
 
+<script>
+(function(){
+ const node=document.getElementById('status');
+ node.textContent='Build 21 loaded. Starting authentication module...';
+ window.addEventListener('error',function(e){
+  node.textContent='NHL startup error: '+(e.message||'Script loading error')+'. Try reloading the page.';
+ });
+ window.addEventListener('unhandledrejection',function(e){
+  node.textContent='NHL startup failed: '+String(e.reason?.message||e.reason||'Unknown error');
+ });
+ setTimeout(function(){
+  if(node.textContent.includes('Starting authentication module')||node.textContent.includes('Checking account access')){
+   node.textContent='NHL startup timed out before authentication. Safari may be blocking the Supabase JavaScript library. Please report this exact message.';
+  }
+ },8000);
+})();
+</script>
 <script type="module">
 import {createClient} from
 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
