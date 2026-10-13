@@ -53,6 +53,7 @@ footer{text-align:center;padding:24px;color:#92a7c3}
   <div class="actions">
     <button id="login">Log In</button>
     <button id="register" class="secondary">Create Account</button>
+    <button id="resetPassword" class="secondary" type="button">Forgot Password?</button>
   </div>
   <p>New accounts require administrator approval.</p>
 </section>
@@ -188,6 +189,28 @@ $('login').onclick=async()=>{
   if(error)message(error.message);
   else await refresh();
 };
+
+$('resetPassword').onclick=async()=>{
+ const email=$('email').value.trim();
+ if(!email){message('Enter your email address above, then click Forgot Password.');return;}
+ const button=$('resetPassword');button.disabled=true;
+ try{
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  message(error?'Password reset unavailable: '+error.message:'If this email has an account, a password reset link has been sent. Check inbox and spam.');
+ }catch(e){message('Password reset failed: '+e.message);}finally{button.disabled=false;}
+};
+
+const hashParams=new URLSearchParams(location.hash.slice(1));
+if(hashParams.get('type')==='recovery'){
+ const newPassword=prompt('Password reset: enter your new password (at least 6 characters).');
+ if(newPassword!==null){
+  if(newPassword.length<6)message('Password must be at least 6 characters.');
+  else db.auth.updateUser({password:newPassword}).then(({error})=>{
+   message(error?'Password update failed: '+error.message:'Password updated. You can now log in with your new password.');
+   if(!error)history.replaceState(null,'',location.pathname);
+  });
+ }
+}
 
 $('register').onclick=async()=>{
   const email=$('email').value.trim();
