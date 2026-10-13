@@ -410,7 +410,7 @@ $('calculateProbabilities').onclick=async()=>{
   const table=document.createElement('table');
   for(const [label,value] of items){const tr=document.createElement('tr');addText(tr,'td',label);addText(tr,'td',value);table.append(tr);}
   root.append(table);
-  out.textContent='PROVISIONAL · Independent Poisson · User-supplied λ · Regulation only · Not calibrated. No bookmaker prices verified.';
+  try{const audit=await db.from('sport_model_runs').insert({user_id:session.user.id,sport:'nhl',model_version:'PROVISIONAL_BASELINE',event_id:String(game.id||''),event_name:game.awayTeam.abbrev+' @ '+game.homeTeam.abbrev,model_status:p.model_status||'PROVISIONAL',inputs:{home:game.homeTeam.abbrev,away:game.awayTeam.abbrev},output:p});if(audit.error)console.warn('Model audit not saved:',audit.error.message);}catch(auditError){console.warn('Model audit unavailable:',auditError);}out.textContent='PROVISIONAL · Independent Poisson · User-supplied λ · Regulation only · Not calibrated. No bookmaker prices verified.';
  }catch(e){out.textContent='Calculation failed: '+(e.message||String(e));}
  finally{btn.disabled=false;}
 };
