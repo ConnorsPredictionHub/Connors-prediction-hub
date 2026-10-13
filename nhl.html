@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div id="status" class="status">Checking account access...</div>
+<div id="status" class="status" role="status">Checking account access...</div>
 
 <section id="content" class="hidden">
   <div class="grid">
@@ -66,6 +66,22 @@ th{color:#a9bad1}
 </section>
 </main>
 
+<script>
+window.nhlStatusTimer = setTimeout(() => {
+  const box = document.getElementById('status');
+  if (box && box.textContent === 'Checking account access...') {
+    box.textContent = 'The NHL account check did not start. A browser extension, network filter, or script-loading issue may be blocking it.';
+  }
+}, 9000);
+window.addEventListener('error', event => {
+  const box = document.getElementById('status');
+  if (box) box.textContent = 'Page script error: ' + (event.message || 'Unable to load a required script.');
+});
+window.addEventListener('unhandledrejection', event => {
+  const box = document.getElementById('status');
+  if (box) box.textContent = 'Connection error: ' + (event.reason?.message || String(event.reason) || 'Unknown error');
+});
+</script>
 <script type="module">
 import {createClient} from
 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -76,7 +92,7 @@ const db=createClient(
 );
 
 const $=id=>document.getElementById(id);
-const status=text=>$('status').textContent=text;
+const status=text=>{clearTimeout(window.nhlStatusTimer);$('status').textContent=text;};
 
 function addText(parent,tag,value,className=''){
   const el=document.createElement(tag);
@@ -149,25 +165,39 @@ async function loadPredictions(){
 }
 
 async function start(){
-  const {data:{user},error}=await db.auth.getUser();
+  status('Connecting to Supabase authentication...');
+  const timeout = (promise, label) => Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' timed out after 12 seconds')),12000))
+  ]);
+  try {
+  const {data:{user},error}=await timeout(db.auth.getUser(),'Authentication');
   if(error||!user){
     status('Please log in through the main Prediction Hub first.');
     return;
   }
 
-  const {data:profile,error:profileError}=await db
+  status('Checking your approved member profile...');
+  const {data:profile,error:profileError}=await timeout(db
     .from('profiles')
     .select('approved')
     .eq('id',user.id)
-    .single();
+    .single(),'Profile lookup');
 
-  if(profileError||!profile?.approved){
+  if(profileError){
+    status('Profile lookup failed: '+profileError.message);
+    return;
+  }
+  if(!profile?.approved){
     status('Access restricted. Administrator approval required.');
     return;
   }
 
   $('content').classList.remove('hidden');
-  await loadPredictions();
+  await timeout(loadPredictions(),'NHL predictions lookup');
+  } catch(e) {
+    status('NHL connection error: '+(e?.message||String(e)));
+  }
 }
 
 $('refresh').onclick=loadPredictions;
