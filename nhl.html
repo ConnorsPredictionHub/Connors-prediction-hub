@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 25 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 26 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -90,6 +90,12 @@ th{color:#a9bad1}
     <label>Historical season <select id="ratingSeason"><option value="20252026">2025–26</option><option value="20242025">2024–25</option></select></label>
     <p id="ratingStatus" class="muted">Ratings load automatically after login.</p>
     <div id="ratingResults" style="overflow-x:auto"></div>
+  </div>
+  <div class="panel">
+    <h2>Official NHL advanced research · Special teams</h2>
+    <p class="muted">NHL Stats REST reports load automatically. Power play, penalty kill and team summary are verified source datasets; 5v5 xG, goals saved above expected and confirmed starting goalies are not supplied by these reports. The locked NHL V1.0 weights are unchanged.</p>
+    <p id="advancedStatus" class="muted">Research data loads automatically after login.</p>
+    <div id="advancedResults" style="overflow-x:auto"></div>
   </div>
   <div class="panel">
     <h2>Verified NHL scoring baselines</h2>
@@ -294,6 +300,30 @@ $('viewHistory').onclick=async()=>{
   root.append(table);
  }catch(e){out.textContent='Historical summary unavailable: '+(e.message||String(e));}
 };
+async function loadAdvancedResearch(){
+ const out=$('advancedStatus'),root=$('advancedResults');root.replaceChildren();
+ out.textContent='Retrieving NHL official special-teams and team reports...';
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw Error('Sign in required');
+  const season=Number($('ratingSeason').value);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+  let response;try{response=await fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/nhl-advanced-research?season='+season,{headers:{apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token},signal:controller.signal});}finally{clearTimeout(timer);}
+  const result=await response.json();if(!response.ok)throw Error(result.error||'HTTP '+response.status);
+  const reports=result.reports||{},statuses=[];
+  for(const [name,report] of Object.entries(reports)){
+   const heading=document.createElement('h3');heading.textContent=name==='powerplay'?'Power play':name==='penaltykill'?'Penalty kill':'Team summary';root.append(heading);
+   if(!report.verified){const p=document.createElement('p');p.textContent='Not available: '+(report.error||'Unknown error');root.append(p);statuses.push(name+' unavailable');continue;}
+   statuses.push(name+': '+report.count+' team records');
+   const rows=report.rows||[],table=document.createElement('table');
+   const fields=name==='powerplay'?['teamFullName','teamName','powerPlayPct','ppPct','powerPlayGoals','powerPlayOpportunities']:name==='penaltykill'?['teamFullName','teamName','penaltyKillPct','pkPct','timesShortHanded','powerPlayGoalsAgainst']:['teamFullName','teamName','wins','losses','otLosses','goalsFor','goalsAgainst'];
+   const available=fields.filter(k=>rows.some(r=>r[k]!==undefined));
+   if(!available.length){const p=document.createElement('p');p.textContent='Verified '+rows.length+' rows. NHL report columns: '+Object.keys(rows[0]||{}).slice(0,18).join(', ');root.append(p);continue;}
+   const h=document.createElement('tr');for(const field of available)addText(h,'th',field);table.append(h);
+   for(const r of rows){const tr=document.createElement('tr');for(const field of available)addText(tr,'td',String(r[field]??'—'));table.append(tr);}root.append(table);
+  }
+  out.textContent='NHL official '+season+' reports: '+statuses.join(' · ')+'. Not yet incorporated into calibrated V1.0 scores.';
+ }catch(e){out.textContent='Official advanced research unavailable: '+(e.message||String(e));}
+}
 async function loadHistoricalRatings(){
  const out=$('ratingStatus'),root=$('ratingResults');root.replaceChildren();out.textContent='Loading opponent-adjusted ratings...';
  try{
@@ -312,7 +342,7 @@ async function loadHistoricalRatings(){
   const note=document.createElement('p');note.className='muted';note.textContent='*L includes all non-winning games, including overtime/shootout losses. Final-score data cannot reliably separate regulation and overtime losses. Opponent adjustment uses full-season opponent averages, not leave-one-out or time-decayed estimates.';root.append(note);
  }catch(e){out.textContent='Historical ratings unavailable: '+(e.message||String(e));}
 }
-$('ratingSeason').onchange=loadHistoricalRatings;
+$('ratingSeason').onchange=()=>{loadHistoricalRatings();loadAdvancedResearch();};
 async function autoPopulateHistory(){
  const out=$('historyStatus');
  try{
@@ -481,6 +511,7 @@ async function start(){
     await Promise.race([loadPredictions(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Prediction loading timed out')),12000))]);
     autoPopulateHistory();
     loadHistoricalRatings();
+    loadAdvancedResearch();
   }catch(e){
 
     status('NHL connection error: '+(e?.message||String(e)));
