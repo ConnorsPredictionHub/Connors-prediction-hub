@@ -56,7 +56,7 @@ th{color:#a9bad1}
     <select id="gameSelect" style="display:block;width:100%;max-width:650px;margin:10px 0 16px;padding:12px;background:#1b2e49;color:#fff;border:1px solid #49627d;border-radius:8px"><option value="">Loading games...</option></select>
     <button id="runPrediction" disabled>RUN PROVISIONAL NHL PREDICTION</button>
     <p id="prepared" class="muted" role="status"></p><div id="matchupResult" style="overflow-x:auto" aria-live="polite"></div>
-    <div class="panel" style="margin-top:18px;background:#182a43">
+    <div class="panel" style="display:none">
       <h3>Optional · Save a confirmed prediction</h3>
       <p class="muted">Click RUN PROVISIONAL NHL PREDICTION above to calculate matchup probabilities and select bets directly on this website. This optional form is only for manually saving and freezing confirmed predictions; no copying or pasting into ChatGPT is required.</p>
       <div class="grid">
@@ -145,6 +145,18 @@ th{color:#a9bad1}
   }
  },8000);
 })();
+
+function renderUnifiedBetSlip(container,sport,event,raw){
+ const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)).slice(0,10);
+ const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability}));
+ const panel=document.createElement('section');panel.style.cssText='margin-top:18px;padding:18px;border:1px solid #49627d;border-radius:12px;background:#182a43';
+ const heading=document.createElement('h3');heading.textContent='Top '+normalized.length+' single bets · Predicted %';panel.append(heading);
+ const warning=document.createElement('p');warning.textContent='Provisional, uncalibrated model percentages. These are not guaranteed outcomes. Choose any number of selections; same-game bets may be correlated.';panel.append(warning);
+ if(!normalized.length){const empty=document.createElement('p');empty.textContent='No calculated probabilities available for this matchup. No selections can be added.';panel.append(empty);container.append(panel);return;}
+ const chosen=new Set(),slip=document.createElement('div');slip.style.cssText='margin-top:16px;padding:16px;border:1px solid #40536d;border-radius:10px';
+ const render=()=>{slip.replaceChildren();const legs=normalized.filter(m=>chosen.has(m.i));const title=document.createElement('h3');title.textContent=legs.length===1?'Bet slip · Single':legs.length>1?'Bet slip · Multi ('+legs.length+' legs)':'Your bet slip';slip.append(title);const details=document.createElement('p');details.style.whiteSpace='pre-wrap';details.textContent=legs.length?legs.map((m,i)=>(i+1)+'. '+m.label+' — '+m.pct.toFixed(1)+'%').join('\\n'):'Tick any of the selections above.';slip.append(details);if(legs.length>1){const note=document.createElement('p');note.textContent='Combined multi probability is not calculated because selections may be correlated.';slip.append(note);}if(legs.length){const proceed=document.createElement('button');proceed.textContent='REVIEW '+(legs.length===1?'SINGLE':'MULTI')+' & ADD TO BET TRACKER';proceed.onclick=()=>{const text=legs.map(m=>m.label+' ('+m.pct.toFixed(1)+'% model estimate)').join('\\n');if(!confirm('Confirm selections for your bet slip:\\n\\n'+text+'\\n\\nContinue to Bet Tracker? You will confirm the actual placed bet there.'))return;const url=new URL('./bet-tracker.html',location.href);url.searchParams.set('sport',sport);url.searchParams.set('legs',JSON.stringify(legs.map(m=>event+' — '+m.label)));location.href=url.toString();};slip.append(proceed);}};
+ normalized.forEach(m=>{const row=document.createElement('label');row.style.cssText='display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #30435d;cursor:pointer';const check=document.createElement('input');check.type='checkbox';check.style.cssText='width:auto;flex:none';check.onchange=()=>{if(check.checked)chosen.add(m.i);else chosen.delete(m.i);render();};const label=document.createElement('span');label.textContent='#'+(m.i+1)+' '+m.label+' · '+m.pct.toFixed(1)+'%';row.append(check,label);panel.append(row);});panel.append(slip);container.append(panel);render();
+}
 </script>
 <script type="module">
 import {createClient} from
@@ -456,7 +468,7 @@ $('runPrediction').onclick=async()=>{
   });}finally{clearTimeout(timer);}
   const p=await response.json();if(!response.ok)throw Error(p.error||'Prediction service HTTP '+response.status);
   out.textContent='PROVISIONAL · Historical goals only · Not the calibrated 12-factor NHL V1.0 model. No predictions saved.';
-  const heading=document.createElement('h3');heading.textContent=p.away+' @ '+p.home+' — projected score '+p.away+' '+p.predicted_score.away+' : '+p.home+' '+p.predicted_score.home;root.append(heading);
+  renderUnifiedBetSlip(root,'nhl',p.away+' @ '+p.home,p.markets);const heading=document.createElement('h3');heading.textContent=p.away+' @ '+p.home+' — projected score '+p.away+' '+p.predicted_score.away+' : '+p.home+' '+p.predicted_score.home;root.append(heading);
   const details=document.createElement('p');details.textContent='Expected goals: '+p.away+' '+p.expected_goals.away+' · '+p.home+' '+p.expected_goals.home+'. Regulation win: '+p.away+' '+p.regulation.away_win+'% · '+p.home+' '+p.regulation.home_win+'% · tied after regulation '+p.regulation.tie+'%.';root.append(details);
   const table=document.createElement('table'),header=document.createElement('tr');
   for(const title of ['Select','Rank','Selection','Model-implied probability','Fair odds (not bookmaker)'])addText(header,'th',title);table.append(header);
