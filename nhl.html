@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 10 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 11 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 <div id="diagnostic" class="muted" style="font-size:12px">Diagnostic: waiting for page scripts...</div><div id="phase" class="muted" style="font-size:12px">Current step: starting...</div>
 
@@ -121,6 +121,7 @@ function renderItems(parent,label,items){
 }
 
 async function loadPredictions(){
+  status('Loading saved NHL predictions...');
   const {data,error}=await db.from('nhl_predictions')
     .select('*')
     .order('game_date',{ascending:false})
@@ -138,6 +139,7 @@ async function loadPredictions(){
 
   if(!games.length){
     addText(root,'p','No NHL predictions saved yet.');
+    status('NHL dashboard connected. No predictions saved yet.');
     return;
   }
 
@@ -218,7 +220,7 @@ async function start(){
     document.getElementById('phase').textContent='Profile request: approved';
     $('content').classList.remove('hidden');
     status('Approved member. Loading NHL predictions...');
-    await loadPredictions();
+    await Promise.race([loadPredictions(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Prediction loading timed out')),12000))]);
   }catch(e){
     document.getElementById('phase').textContent='Profile request error: '+(e?.message||String(e));
     status('NHL connection error: '+(e?.message||String(e)));
