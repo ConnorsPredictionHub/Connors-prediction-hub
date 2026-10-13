@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 23 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL dashboard build 24 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 
 
@@ -277,8 +277,10 @@ $('importHistory').onclick=async()=>{
 $('viewHistory').onclick=async()=>{
  const out=$('historyStatus'),root=$('historyResults');root.replaceChildren();out.textContent='Loading stored history...';
  try{
-  const p=await historyRequest('GET');
-  out.textContent='Stored historical games in sample: '+p.stored_games_sample+'. Historical goal averages are descriptive, not calibrated expected goals.';
+  const {data:summary,error:summaryError}=await db.rpc('nhl_historical_summary');
+  if(summaryError)throw Error(summaryError.message);
+  const p={season_summary:(summary||[]).map(s=>({season:s.season,games_in_sample:Number(s.games),goals_per_team_game:Number(s.goals_per_team_game)})),stored_games_sample:(summary||[]).reduce((n,s)=>n+Number(s.games),0)};
+  out.textContent='Official historical games stored: '+p.stored_games_sample+'. Historical goal averages are descriptive, not calibrated expected goals.';
   const table=document.createElement('table'),head=document.createElement('tr');
   for(const h of ['Season','Games sampled','Goals / team / game'])addText(head,'th',h);table.append(head);
   for(const s of p.season_summary){const tr=document.createElement('tr');for(const v of [s.season,String(s.games_in_sample),s.goals_per_team_game.toFixed(3)])addText(tr,'td',v);table.append(tr);}
@@ -304,7 +306,7 @@ async function autoPopulateHistory(){
    }catch(e){out.textContent='Automatic history import needs retry: '+(e.message||String(e));break;}
    finally{clearTimeout(timer);}
   }
-  $('viewHistory').click();
+  await $('viewHistory').click();
  }catch(e){out.textContent='Historical data unavailable: '+(e.message||String(e));}
 }
 $('loadBaselines').onclick=async()=>{
