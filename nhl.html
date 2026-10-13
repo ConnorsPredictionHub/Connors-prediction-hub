@@ -37,7 +37,7 @@ th{color:#a9bad1}
   <p>Game predictions · Safer bets · BTTS 2+ · Multis · Model audit</p>
 </header>
 <main>
-<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 8 · 13 October 2026</div>
+<div class="muted" style="font-size:12px;margin-bottom:8px">NHL diagnostic build 9 · 13 October 2026</div>
 <div id="status" class="status" role="status">Checking account access...</div>
 <div id="diagnostic" class="muted" style="font-size:12px">Diagnostic: waiting for page scripts...</div><div id="phase" class="muted" style="font-size:12px">Current step: starting...</div>
 
@@ -70,15 +70,20 @@ th{color:#a9bad1}
 
 <script>
 (function(){
- const d=document.getElementById('diagnostic');
+ const diag=document.getElementById('diagnostic');
+ const phase=document.getElementById('phase');
+ const status=document.getElementById('status');
  let seconds=0;
- d.textContent='Diagnostic: page script running (0 seconds)';
- setInterval(()=>{
-   seconds++;
-   d.textContent='Diagnostic: page script running ('+seconds+' seconds) · status: '+document.getElementById('status').textContent;
- },1000);
- window.addEventListener('error',e=>{d.textContent='Script error: '+(e.message||'unknown');});
- window.addEventListener('unhandledrejection',e=>{d.textContent='Async error: '+(e.reason?.message||String(e.reason));});
+ setInterval(()=>{seconds++;diag.textContent='Build 9 JavaScript running: '+seconds+' seconds';},1000);
+ phase.textContent='Network test: starting';
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),7000);
+ fetch('https://uvqbvqhkztdmdiayycuz.supabase.co/auth/v1/health',{signal:controller.signal})
+ .then(r=>{phase.textContent='Network test: Supabase responded HTTP '+r.status;})
+ .catch(e=>{phase.textContent='Network test: '+(e.name||'Error')+' — '+e.message;})
+ .finally(()=>clearTimeout(timeout));
+ window.addEventListener('error',e=>{phase.textContent='JavaScript error: '+(e.message||'unknown');});
+ window.addEventListener('unhandledrejection',e=>{phase.textContent='Async error: '+(e.reason?.message||String(e.reason));});
 })();
 </script>
 <script type="module">
