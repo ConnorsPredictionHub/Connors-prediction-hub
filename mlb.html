@@ -91,7 +91,7 @@ function renderBetBuilder(data){
   const selected=[...picked].sort((a,b)=>a-b).map(i=>choices[i]);
   const h=document.createElement('h3');h.textContent=selected.length===1?'Single selection':selected.length>1?'Multi selection · '+selected.length+' legs':'Choose bets to build a slip';slip.append(h);
   if(selected.length){const lines=document.createElement('p');lines.style.whiteSpace='pre-wrap';lines.textContent=selected.map((x,i)=>(i+1)+'. '+x.event+' — '+x.selection).join('\n');slip.append(lines);
-   const note=document.createElement('p');note.textContent='No combined probability or bookmaker odds calculated. Check market availability and correlations before placing a bet.';slip.append(note);
+   const note=document.createElement('p');note.textContent='Multi-leg probabilities are not calculated; selections in the same game may be correlated.';slip.append(note);
    const copy=document.createElement('button');copy.textContent='COPY '+(selected.length===1?'SINGLE':'MULTI')+' SELECTION';
    copy.onclick=async()=>{const text=selected.map(x=>x.event+' — '+x.selection).join(' + ');try{await navigator.clipboard.writeText(text);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};slip.append(copy);
    const track=document.createElement('button');track.textContent='ADD TO BET TRACKER';track.onclick=()=>{
@@ -173,15 +173,8 @@ function marketPlausible(sport,label){
  }
  return true;
 }
-function renderPlayerPropStatus(panel,sport){
- const markets={nbl:'Player points · rebounds · assists · 3-pointers',nfl:'Receiving yards · receptions · passing yards · rushing yards · touchdowns',mlb:'Pitcher strikeouts · batter hits · total bases · RBIs',nhl:'Shots on goal · points · assists · goals · goalie saves'};
- const section=document.createElement('section');section.style.cssText='margin:14px 0;padding:13px;border:1px solid #675536;border-radius:9px;background:#24221d';
- const title=document.createElement('strong');title.textContent='PLAYER PROPS · FREE DATA MODE';section.append(title);
- const p=document.createElement('p');p.textContent=markets[sport]||'Player performance markets';section.append(p);
- const status=document.createElement('p');status.textContent='Player-level projections are not yet connected. No player prop or Neds listing will be invented. Existing team-level estimates are provisional; confirm each line in Neds before placing a bet.';section.append(status);panel.append(section);
-}
 function renderUnifiedBetSlip(container,sport,event,raw){
- const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).sort((a,b)=>b.probability-a.probability).slice(0,10);
+ const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>{if(!m.label||!Number.isFinite(m.probability))return false;const pct=m.probability<=1?m.probability*100:m.probability;if(pct<52||pct>88)return false;const label=m.label.toLowerCase();const match=label.match(/(?:over|under)\\s*(\\d+(?:\\.\\d+)?)/);if('mlb.html'==='mlb.html'){if(match&&/game/.test(label)&&Number(match[1])<7.5)return false;if(/team\\s*[23]\\+\\s*runs/.test(label))return false;}else{if(/game over 2\\.5 goals/.test(label))return false;}return true;}).filter((m,i,arr)=>arr.findIndex(x=>x.label.toLowerCase().replace(/\\s+/g,' ').trim()===m.label.toLowerCase().replace(/\\s+/g,' ').trim())===i).sort((a,b)=>(b.probability<=1?b.probability*100:b.probability)-(a.probability<=1?a.probability*100:a.probability)).slice(0,10);
  const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct).map((m,i)=>({...m,rank:i+1}));
  const panel=document.createElement('section');panel.style.cssText='margin-top:18px;padding:18px;border:1px solid #49627d;border-radius:12px;background:#182a43';
  const heading=document.createElement('h3');heading.textContent='Top '+normalized.length+' single bets · Predicted %';panel.append(heading);
