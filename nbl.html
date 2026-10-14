@@ -141,7 +141,19 @@ const gamePickCategories=[
  gameMarkets.filter(x=>/match points/i.test(getLabel(x))).sort((a,b)=>b.probability-a.probability).slice(0,4),
  gameMarkets.filter(x=>/team points/i.test(getLabel(x))||(/over.*points/i.test(getLabel(x))&&!/match points/i.test(getLabel(x)))).sort((a,b)=>b.probability-a.probability).slice(0,4)
 ];
-const selected=[...gamePickCategories.flat(),...playerPicks.slice(0,8)].filter(x=>Number.isFinite(Number(x.probability))).sort((a,b)=>Number(b.probability)-Number(a.probability)).slice(0,10);
+const pool=[...gameMarkets,...playerPicks].filter(x=>Number.isFinite(Number(x.probability))&&Number(x.probability)>=0&&Number(x.probability)<=1).sort((a,b)=>Number(b.probability)-Number(a.probability));
+const chosen=[],keys=new Set();
+const addPick=p=>{if(!p||chosen.length>=10)return;const key=getLabel(p).toLowerCase();if(keys.has(key))return;keys.add(key);chosen.push(p);};
+const groups=[
+ pool.filter(x=>/match winner/i.test(getLabel(x))),
+ pool.filter(x=>/match points/i.test(getLabel(x))),
+ pool.filter(x=>/team points/i.test(getLabel(x))||(/over.*points/i.test(getLabel(x))&&!/match points/i.test(getLabel(x)))),
+ pool.filter(x=>String(x.market||'').startsWith('player_'))
+];
+for(const group of groups)if(group.length)addPick(group[0]);
+for(const p of pool){if(chosen.length>=10)break;const player=String(p.player||'').toLowerCase();if(player&&chosen.filter(x=>String(x.player||'').toLowerCase()===player).length>=2)continue;addPick(p);}
+for(const p of pool){if(chosen.length>=10)break;addPick(p);}
+const selected=chosen.sort((a,b)=>Number(b.probability)-Number(a.probability));
 const playerStatus=document.createElement('p');playerStatus.style.cssText='padding:12px;border:1px solid #80633a;border-radius:8px;background:#27231c';playerStatus.textContent=playerPicks.length?'NBL player props: '+playerPicks.length+' calculated from official player data. Game totals, team totals and player props are ranked by estimated probability.':'PLAYER PROP DATA NOT LOADED — '+(playerResponse.error||playerResponse.note||'No verified player data returned')+'. Showing team markets only. This is a data connection issue, not a complete 10-market prediction.';model.append(playerStatus);
 renderUnifiedBetSlip(model,'nbl',g.away+' @ '+g.home,selected);
 
@@ -197,7 +209,7 @@ function renderPlayerPropStatus(panel,sport){
 }
 function renderUnifiedBetSlip(container,sport,event,raw){
  const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).sort((a,b)=>(b.probability<=1?b.probability*100:b.probability)-(a.probability<=1?a.probability*100:a.probability)).slice(0,10);
- const normalized=picks.filter(m=>marketPlausible(sport,m.label)).map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct).map((m,i)=>({...m,rank:i+1}));
+ const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct).map((m,i)=>({...m,rank:i+1}));
  const panel=document.createElement('section');panel.style.cssText='margin-top:18px;padding:18px;border:1px solid #49627d;border-radius:12px;background:#182a43';
  const heading=document.createElement('h3');heading.textContent='Top '+normalized.length+' single bets · Predicted %';panel.append(heading);
  const warning=document.createElement('p');warning.textContent='Provisional, uncalibrated model percentages. These are not guaranteed outcomes. Choose any number of selections; same-game bets may be correlated.';panel.append(warning);
