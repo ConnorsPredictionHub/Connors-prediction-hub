@@ -51,20 +51,47 @@ button:not(.secondary):not(.danger):hover{background:#ffe5a8;color:#17120c}
 input,select,textarea{background:#101820;border-color:#66543b;color:#f5f0e7}
 button:focus-visible,a:focus-visible,input:focus-visible{outline-color:#e7b65d}
 .status{border-color:#685237;border-left-color:#d6a54b}
-</style></head><body><header><a class="cph-mini-brand" href="./index.html" aria-label="Connor’s Prediction Hub home"><img src="./assets/cph-crest.svg" alt="CPH crest"> CONNORS PREDICTION HUB</a><a href="./index.html">← Prediction Hub</a><h1>Bet Tracker</h1><p>All six sports · Singles and multis · Settled results · Profit and loss</p></header><main><div id="status" class="panel">Checking account access...</div><section id="app" hidden><div class="grid"><div class="stat">Recorded bets<strong id="count">0</strong></div><div class="stat">Pending<strong id="pending">0</strong></div><div class="stat">Settled win rate<strong id="hit">—</strong></div><div class="stat">Net profit / loss<strong id="profit">—</strong></div></div><div class="panel"><h2>Record a bet</h2><p>Only record bets you actually placed. Use the bookmaker's accepted odds and your real stake; leave blank if unknown.</p><div class="grid"><label>Sport<select id="sport"><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><label>Bet type<select id="type"><option value="single">Single</option><option value="multi">Multi</option></select></label><label>Stake (AUD, optional)<input id="stake" type="number" step="0.01" min="0.01" placeholder="5.00"></label><label>Accepted decimal odds (optional)<input id="odds" type="number" step="0.001" min="1.001" placeholder="1.75"></label></div><label>Selections — one leg per line<textarea id="legs" rows="5" placeholder="Team A 2+ goals&#10;Match over 4.5 goals"></textarea></label><label>Notes (optional)<textarea id="notes" rows="2"></textarea></label><button id="save">RECORD BET AS PENDING</button><p id="saveMessage" role="status"></p></div><div class="panel"><h2>My tracked bets</h2><button type="button" id="checkResults">↻ CHECK ALL RESULTS</button><p id="checkResultsStatus" role="status" class="muted">Checks pending bets across all six sports. Shows available verified scores and flags bets needing manual Win / Loss / Void settlement.</p><div id="checkedScores"></div><label>Filter sport<select id="filter"><option value="all">All sports</option><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><p class="muted">Settle only when you know the official outcome. Returns are gross amounts received, including stake. For void bets, use the returned stake.</p><div id="history">Loading...</div></div></section></main><script type="module">
+
+/* Compact two-column bet tracker dashboard */
+.tracker-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(290px,.9fr);gap:18px;align-items:start}
+.tracker-layout>.panel{margin:0;min-width:0;grid-column:1;grid-row:1}.tracker-side{grid-column:2;grid-row:1}
+.tracker-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:14px 0}
+.tracker-toolbar label{margin:0;min-width:160px;flex:1}
+.tracker-toolbar select{margin-top:5px}
+.status-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0}
+.status-tabs button{background:#202831!important;color:#c6bca9!important;border:1px solid #625037!important;padding:9px 13px;min-height:39px;font-size:13px}
+.status-tabs button[aria-pressed="true"]{background:#e0b565!important;color:#18140d!important;border-color:#e0b565!important}
+.bet-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bet-list .entry{border:1px solid #584a37;border-radius:13px;padding:15px;background:#121b25;margin:0}
+.bet-list .entry h3{font-size:14px;line-height:1.4;margin:0 0 9px}
+.bet-list .entry p{font-size:12px;line-height:1.5;margin:8px 0;white-space:pre-wrap}
+.bet-list .entry label{font-size:12px}
+.bet-list .entry button{font-size:12px;padding:9px 12px}
+.bet-list .entry select,.bet-list .entry input{font-size:13px;padding:8px;min-height:37px}
+.tracker-side{display:grid;gap:18px;align-content:start}
+.tracker-side>.panel{margin:0}
+.tracker-side .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tracker-side .grid label{min-width:0}
+#checkedScores .entry{border:1px solid #584a37;border-radius:10px;padding:12px;margin:10px 0;background:#121b25}
+#checkResults{width:100%}
+@media(max-width:850px){.tracker-layout{grid-template-columns:1fr}.tracker-layout>.panel,.tracker-side{grid-column:1;grid-row:auto}.bet-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:550px){.bet-list{grid-template-columns:1fr}}
+</style></head><body><header><a class="cph-mini-brand" href="./index.html" aria-label="Connor’s Prediction Hub home"><img src="./assets/cph-crest.svg" alt="CPH crest"> CONNORS PREDICTION HUB</a><a href="./index.html">← Prediction Hub</a><h1>Bet Tracker</h1><p>All six sports · Singles and multis · Settled results · Profit and loss</p></header><main><div id="status" class="panel">Checking account access...</div><section id="app" hidden><div class="grid"><div class="stat">Recorded bets<strong id="count">0</strong></div><div class="stat">Pending<strong id="pending">0</strong></div><div class="stat">Settled win rate<strong id="hit">—</strong></div><div class="stat">Net profit / loss<strong id="profit">—</strong></div></div><div class="tracker-layout"><div class="tracker-side"><div class="panel"><h2>Record a bet</h2><p>Only record bets you actually placed. Use the bookmaker's accepted odds and your real stake; leave blank if unknown.</p><div class="grid"><label>Sport<select id="sport"><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><label>Bet type<select id="type"><option value="single">Single</option><option value="multi">Multi</option></select></label><label>Stake (AUD, optional)<input id="stake" type="number" step="0.01" min="0.01" placeholder="5.00"></label><label>Accepted decimal odds (optional)<input id="odds" type="number" step="0.001" min="1.001" placeholder="1.75"></label></div><label>Selections — one leg per line<textarea id="legs" rows="5" placeholder="Team A 2+ goals&#10;Match over 4.5 goals"></textarea></label><label>Notes (optional)<textarea id="notes" rows="2"></textarea></label><button id="save">RECORD BET AS PENDING</button><p id="saveMessage" role="status"></p></div></div><div class="panel"><h2>My tracked bets</h2><button type="button" id="checkResults">↻ CHECK ALL RESULTS</button><p id="checkResultsStatus" role="status" class="muted">Checks pending bets across all six sports. Shows available verified scores and flags bets needing manual Win / Loss / Void settlement.</p><div id="checkedScores"></div><div class="tracker-toolbar"><label>Filter sport<select id="filter"><option value="all">All sports</option><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label></div><p class="muted">Settle only when you know the official outcome. Returns are gross amounts received, including stake. For void bets, use the returned stake.</p><div class="status-tabs" role="group" aria-label="Filter bets by status"><button type="button" data-status="pending" aria-pressed="true">Pending</button><button type="button" data-status="won" aria-pressed="false">Won</button><button type="button" data-status="lost" aria-pressed="false">Lost</button><button type="button" data-status="void" aria-pressed="false">Void</button><button type="button" data-status="all" aria-pressed="false">All</button></div><div id="history" class="bet-list">Loading...</div></div></div></section></main><script type="module">
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const db=createClient('https://uvqbvqhkztdmdiayycuz.supabase.co','sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS');
 const $=id=>document.getElementById(id);let userId,records=[];
+let selectedBetStatus="pending";
 const money=n=>'AUD $'+Number(n).toFixed(2);
 function el(tag,txt){const x=document.createElement(tag);if(txt!==undefined)x.textContent=txt;return x;}
 function refresh(){
- const subset=records.filter(p=>$('filter').value==='all'||p.sport===$('filter').value);
- const settled=subset.filter(p=>p.status!=='pending'),known=settled.filter(p=>p.stake!==null&&p.settled_return!==null);
- $('count').textContent=subset.length;$('pending').textContent=subset.filter(p=>p.status==='pending').length;
+ const sportRecords=records.filter(p=>$('filter').value==='all'||p.sport===$('filter').value);
+ const subset=sportRecords.filter(p=>selectedBetStatus==='all'||p.status===selectedBetStatus);
+ const settled=sportRecords.filter(p=>p.status!=='pending'),known=settled.filter(p=>p.stake!==null&&p.settled_return!==null);
+ $('count').textContent=sportRecords.length;$('pending').textContent=sportRecords.filter(p=>p.status==='pending').length;
  $('hit').textContent=settled.length?(100*settled.filter(p=>p.status==='won').length/settled.length).toFixed(1)+'%':'—';
  $('profit').textContent=known.length?money(known.reduce((s,p)=>s+Number(p.settled_return)-Number(p.stake),0)):'—';
  const root=$('history');root.replaceChildren();
- if(!subset.length){root.textContent='No bets recorded for this sport.';return;}
+ if(!subset.length){root.textContent='No '+(selectedBetStatus==='all'?'recorded':selectedBetStatus)+' bets for this sport.';return;}
  for(const p of subset){
   const item=el('div');item.className='entry';
   const title=el('h3',p.sport.toUpperCase()+' · '+p.bet_type.toUpperCase()+' · '+p.status.toUpperCase());item.append(title);
@@ -182,6 +209,7 @@ async function checkOfficialResults(){
  finally{button.disabled=false;}
 }
 $('checkResults').onclick=checkOfficialResults;
+document.querySelectorAll('[data-status]').forEach(button=>button.addEventListener('click',()=>{selectedBetStatus=button.dataset.status;document.querySelectorAll('[data-status]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));refresh();}));
 $('filter').onchange=refresh;
 $('save').onclick=async()=>{
  const legs=$('legs').value.split('\n').map(x=>x.trim()).filter(Boolean),type=$('type').value;
