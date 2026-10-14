@@ -141,7 +141,19 @@ const gamePickCategories=[
  gameMarkets.filter(x=>/match points/i.test(getLabel(x))).sort((a,b)=>b.probability-a.probability).slice(0,4),
  gameMarkets.filter(x=>/team points/i.test(getLabel(x))||(/over.*points/i.test(getLabel(x))&&!/match points/i.test(getLabel(x)))).sort((a,b)=>b.probability-a.probability).slice(0,4)
 ];
-const pool=[...gameMarkets,...playerPicks].filter(x=>Number.isFinite(Number(x.probability))&&Number(x.probability)>=0&&Number(x.probability)<=1).sort((a,b)=>Number(b.probability)-Number(a.probability));
+const practicalMarket=x=>{
+ const s=getLabel(x).toLowerCase(),p=Number(x.probability);
+ if(!Number.isFinite(p)||p<0.52||p>0.88)return false;
+ const match=s.match(/(?:over|under)\\s*(\\d+(?:\\.\\d+)?)/);
+ if(match){
+  const line=Number(match[1]);
+  if(/match points/.test(s)&&line<179.5)return false;
+  if(/team points/.test(s)&&line<79.5)return false;
+  if(/player_/.test(String(x.market||''))&&p>0.88)return false;
+ }
+ return true;
+};
+const pool=[...gameMarkets,...playerPicks].filter(practicalMarket).sort((a,b)=>Number(b.probability)-Number(a.probability));
 const chosen=[],keys=new Set();
 const addPick=p=>{if(!p||chosen.length>=10)return;const key=getLabel(p).toLowerCase();if(keys.has(key))return;keys.add(key);chosen.push(p);};
 const groups=[
@@ -154,7 +166,7 @@ for(const group of groups)if(group.length)addPick(group[0]);
 for(const p of pool){if(chosen.length>=10)break;const player=String(p.player||'').toLowerCase();if(player&&chosen.filter(x=>String(x.player||'').toLowerCase()===player).length>=2)continue;addPick(p);}
 for(const p of pool){if(chosen.length>=10)break;addPick(p);}
 const selected=chosen.sort((a,b)=>Number(b.probability)-Number(a.probability));
-const playerStatus=document.createElement('p');playerStatus.style.cssText='padding:12px;border:1px solid #80633a;border-radius:8px;background:#27231c';playerStatus.textContent=playerPicks.length?'NBL player props: '+playerPicks.length+' calculated from official player data. Game totals, team totals and player props are ranked by estimated probability.':'PLAYER PROP DATA NOT LOADED — '+(playerResponse.error||playerResponse.note||'No verified player data returned')+'. Showing team markets only. This is a data connection issue, not a complete 10-market prediction.';model.append(playerStatus);
+const playerStatus=document.createElement('p');playerStatus.style.cssText='padding:12px;border:1px solid #80633a;border-radius:8px;background:#27231c';playerStatus.textContent=playerPicks.length?'NBL player props: '+playerPicks.length+' calculated from official player data. Only practical thresholds are included; selections are ranked by estimated probability.':'PLAYER PROP DATA NOT LOADED — '+(playerResponse.error||playerResponse.note||'No verified player data returned')+'. Showing team markets only. This is a data connection issue, not a complete 10-market prediction.';model.append(playerStatus);
 renderUnifiedBetSlip(model,'nbl',g.away+' @ '+g.home,selected);
 
  const score=data.projected_score||data.predicted_score||data.projected_points;if(score){renderProjectedScore(model,g.away,g.home,score.away,score.home,score.total,'points');}}catch(e){model.textContent='Historical NBL model unavailable: '+e.message;}})();
