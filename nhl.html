@@ -236,13 +236,6 @@ function marketPlausible(sport,label){
  }
  return true;
 }
-function renderPlayerPropStatus(panel,sport){
- const markets={nbl:'Player points · rebounds · assists · 3-pointers',nfl:'Receiving yards · receptions · passing yards · rushing yards · touchdowns',mlb:'Pitcher strikeouts · batter hits · total bases · RBIs',nhl:'Shots on goal · points · assists · goals · goalie saves'};
- const section=document.createElement('section');section.style.cssText='margin:14px 0;padding:13px;border:1px solid #675536;border-radius:9px;background:#24221d';
- const title=document.createElement('strong');title.textContent='PLAYER PROPS · FREE DATA MODE';section.append(title);
- const p=document.createElement('p');p.textContent=markets[sport]||'Player performance markets';section.append(p);
- const status=document.createElement('p');status.textContent='Player-level projections are not yet connected. No player prop or Neds listing will be invented. Existing team-level estimates are provisional; confirm each line in Neds before placing a bet.';section.append(status);panel.append(section);
-}
 function renderUnifiedBetSlip(container,sport,event,raw){
  const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).slice(0,10);
  const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct).map((m,i)=>({...m,rank:i+1}));
