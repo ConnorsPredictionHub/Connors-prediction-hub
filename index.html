@@ -427,7 +427,8 @@ const fixturePaths={nhl:'./nhl.html',nfl:'./nfl.html',mlb:'./mlb.html',nbl:'./nb
 function renderHomeFixtures(){
  const root=$('homeFixtures');root.replaceChildren();
  const now=Date.now(),horizon=now+7*24*60*60*1000;
- const filtered=homeFixtureRecords.filter(g=>(homeFixtureSport==='all'||g.sport===homeFixtureSport)&&Date.parse(g.date)>=now-2*60*60*1000&&Date.parse(g.date)<=horizon).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).slice(0,12);
+ const seen=new Set();
+ const filtered=homeFixtureRecords.filter(g=>{if((homeFixtureSport!=='all'&&g.sport!==homeFixtureSport)||Date.parse(g.date)<now-2*60*60*1000||Date.parse(g.date)>horizon)return false;const key=[g.sport,String(g.away).trim().toLowerCase(),String(g.home).trim().toLowerCase(),new Date(g.date).toISOString().slice(0,10)].join('|');if(seen.has(key))return false;seen.add(key);return true;}).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).slice(0,12);
  if(!filtered.length){const p=document.createElement('p');p.className='fixture-empty';p.textContent='No verified '+(homeFixtureSport==='all'?'':' '+homeFixtureSport.toUpperCase())+' fixtures found in the next 7 days. Select a model to see its full upcoming schedule.';root.append(p);return;}
  for(const g of filtered){const row=document.createElement('div');row.className='fixture-item';const left=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),link=document.createElement('a');name.textContent=g.away+' @ '+g.home;meta.textContent=g.sport.toUpperCase()+' · '+new Date(g.date).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});left.append(name,meta);link.href=fixturePaths[g.sport];link.textContent='OPEN MODEL →';row.append(left,link);root.append(row);}
 }
@@ -558,7 +559,7 @@ async function loadHomeFixtures(){
     const payload=await response.json();
     if(!response.ok)throw Error(payload.error||sport+' fixture feed unavailable');
     const games=(payload.games||[]).map(g=>({sport,away:sport==='nhl'?(g.awayTeam?.placeName?.default||g.awayTeam?.abbrev):g.away,home:sport==='nhl'?(g.homeTeam?.placeName?.default||g.homeTeam?.abbrev):g.home,date:sport==='nhl'?g.startTimeUTC:g.date})).filter(g=>g.away&&g.home&&g.date&&Number.isFinite(Date.parse(g.date)));
-    homeFixtureRecords.push(...games);
+    homeFixtureRecords=homeFixtureRecords.filter(g=>g.sport!==sport).concat(games);
     state[sport]='ready';
    }catch(e){state[sport]='error';}
    finally{clearTimeout(timeout);display();}
