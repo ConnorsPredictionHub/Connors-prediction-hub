@@ -91,7 +91,7 @@ function renderBetBuilder(data){
   const selected=[...picked].sort((a,b)=>a-b).map(i=>choices[i]);
   const h=document.createElement('h3');h.textContent=selected.length===1?'Single selection':selected.length>1?'Multi selection · '+selected.length+' legs':'Choose bets to build a slip';slip.append(h);
   if(selected.length){const lines=document.createElement('p');lines.style.whiteSpace='pre-wrap';lines.textContent=selected.map((x,i)=>(i+1)+'. '+x.event+' — '+x.selection).join('\n');slip.append(lines);
-   const note=document.createElement('p');note.textContent='No combined probability or bookmaker odds calculated. Check market availability and correlations before placing a bet.';slip.append(note);
+   const note=document.createElement('p');note.textContent='Multi-leg probabilities are not calculated; selections in the same game may be correlated.';slip.append(note);
    const copy=document.createElement('button');copy.textContent='COPY '+(selected.length===1?'SINGLE':'MULTI')+' SELECTION';
    copy.onclick=async()=>{const text=selected.map(x=>x.event+' — '+x.selection).join(' + ');try{await navigator.clipboard.writeText(text);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};slip.append(copy);
    const track=document.createElement('button');track.textContent='ADD TO BET TRACKER';track.onclick=()=>{
@@ -199,12 +199,6 @@ function renderProjectedScore(container,awayName,homeName,awayScore,homeScore,to
  const foot=document.createElement('div');foot.className='scoreboard-total';foot.textContent='Projected total: '+(valid(total)?total:(Number(awayScore)+Number(homeScore)).toFixed(1))+' '+unit;card.append(foot);
  container.prepend(card);return true;
 }
-function marketAvailabilityNote(sport,label){
- const s=String(label).toLowerCase();
- const match=s.match(/(?:over|under|o\/u|total)\s*(\d+(?:\.\d+)?)/i);
- if(sport==='nbl'&&match&&Number(match[1])<160&&/(?:match|game|total|over|under)/i.test(s))return 'outside practical NBL full-game totals; verify Neds before considering';
- return 'standard market type only — Neds availability NOT verified';
-}
 function marketPlausible(sport,label){
  const s=String(label).toLowerCase();
  if(sport==='nbl'&&/(?:over|under)\s*(\d+(?:\.\d+)?)/i.test(s)&&/(?:total|match|game|points)/i.test(s)){
@@ -212,13 +206,6 @@ function marketPlausible(sport,label){
   if(n&&Number(n[1])<160&&!/(?:player|rebound|assist|three|individual)/i.test(s))return false;
  }
  return true;
-}
-function renderPlayerPropStatus(panel,sport){
- const markets={nbl:'Player points · rebounds · assists · 3-pointers',nfl:'Receiving yards · receptions · passing yards · rushing yards · touchdowns',mlb:'Pitcher strikeouts · batter hits · total bases · RBIs',nhl:'Shots on goal · points · assists · goals · goalie saves'};
- const section=document.createElement('section');section.style.cssText='margin:14px 0;padding:13px;border:1px solid #675536;border-radius:9px;background:#24221d';
- const title=document.createElement('strong');title.textContent='PLAYER PROPS · FREE DATA MODE';section.append(title);
- const p=document.createElement('p');p.textContent=markets[sport]||'Player performance markets';section.append(p);
- const status=document.createElement('p');status.textContent='Player-level projections are not yet connected. No player prop or Neds listing will be invented. Existing team-level estimates are provisional; confirm each line in Neds before placing a bet.';section.append(status);panel.append(section);
 }
 function renderUnifiedBetSlip(container,sport,event,raw){
  const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).sort((a,b)=>(b.probability<=1?b.probability*100:b.probability)-(a.probability<=1?a.probability*100:a.probability)).slice(0,10);
