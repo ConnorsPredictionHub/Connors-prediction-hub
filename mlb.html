@@ -165,16 +165,37 @@ function renderProjectedScore(container,awayName,homeName,awayScore,homeScore,to
  const foot=document.createElement('div');foot.className='scoreboard-total';foot.textContent='Projected total: '+(valid(total)?total:(Number(awayScore)+Number(homeScore)).toFixed(1))+' '+unit;card.append(foot);
  container.prepend(card);return true;
 }
+function marketAvailabilityNote(sport,label){
+ const s=String(label).toLowerCase();
+ const match=s.match(/(?:over|under|o\/u|total)\s*(\d+(?:\.\d+)?)/i);
+ if(sport==='nbl'&&match&&Number(match[1])<160&&/(?:match|game|total|over|under)/i.test(s))return 'outside practical NBL full-game totals; verify Neds before considering';
+ return 'standard market type only — Neds availability NOT verified';
+}
+function marketPlausible(sport,label){
+ const s=String(label).toLowerCase();
+ if(sport==='nbl'&&/(?:over|under)\s*(\d+(?:\.\d+)?)/i.test(s)&&/(?:total|match|game|points)/i.test(s)){
+  const n=s.match(/(?:over|under)\s*(\d+(?:\.\d+)?)/i);
+  if(n&&Number(n[1])<160&&!/(?:player|rebound|assist|three|individual)/i.test(s))return false;
+ }
+ return true;
+}
+function renderPlayerPropStatus(panel,sport){
+ const markets={nbl:'Player points · rebounds · assists · 3-pointers',nfl:'Receiving yards · receptions · passing yards · rushing yards · touchdowns',mlb:'Pitcher strikeouts · batter hits · total bases · RBIs',nhl:'Shots on goal · points · assists · goals · goalie saves'};
+ const section=document.createElement('section');section.style.cssText='margin:14px 0;padding:13px;border:1px solid #675536;border-radius:9px;background:#24221d';
+ const title=document.createElement('strong');title.textContent='PLAYER PROPS · FREE DATA MODE';section.append(title);
+ const p=document.createElement('p');p.textContent=markets[sport]||'Player performance markets';section.append(p);
+ const status=document.createElement('p');status.textContent='Player-level projections are not yet connected. No player prop or Neds listing will be invented. Existing team-level estimates are provisional; confirm each line in Neds before placing a bet.';section.append(status);panel.append(section);
+}
 function renderUnifiedBetSlip(container,sport,event,raw){
  const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).slice(0,10);
- const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct);
+ const normalized=picks.filter(m=>marketPlausible(sport,m.label)).map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct);
  const panel=document.createElement('section');panel.style.cssText='margin-top:18px;padding:18px;border:1px solid #49627d;border-radius:12px;background:#182a43';
  const heading=document.createElement('h3');heading.textContent='Top '+normalized.length+' single bets · Predicted %';panel.append(heading);
- const warning=document.createElement('p');warning.textContent='Provisional, uncalibrated model percentages. These are not guaranteed outcomes. Choose any number of selections; same-game bets may be correlated.';panel.append(warning);
+ const warning=document.createElement('p');warning.textContent='Provisional, uncalibrated model percentages. These are not guaranteed outcomes. Choose any number of selections; same-game bets may be correlated.';panel.append(warning);renderPlayerPropStatus(panel,sport);
  if(!normalized.length){const empty=document.createElement('p');empty.textContent='No calculated probabilities available for this matchup. No selections can be added.';panel.append(empty);container.append(panel);return;}
  const chosen=new Set(),slip=document.createElement('div');slip.style.cssText='margin-top:16px;padding:16px;border:1px solid #40536d;border-radius:10px';
  const render=()=>{slip.replaceChildren();const legs=normalized.filter(m=>chosen.has(m.i));const title=document.createElement('h3');title.textContent=legs.length===1?'Bet slip · Single':legs.length>1?'Bet slip · Multi ('+legs.length+' legs)':'Your bet slip';slip.append(title);const details=document.createElement('p');details.style.whiteSpace='pre-wrap';details.textContent=legs.length?legs.map((m,i)=>(i+1)+'. '+m.label+' — '+m.pct.toFixed(1)+'%').join('\n'):'Tick any of the selections above.';slip.append(details);if(legs.length>1){const note=document.createElement('p');note.textContent='Combined multi probability is not calculated because selections may be correlated.';slip.append(note);}if(legs.length){const proceed=document.createElement('button');proceed.textContent='REVIEW '+(legs.length===1?'SINGLE':'MULTI')+' & ADD TO BET TRACKER';proceed.onclick=()=>{const text=legs.map(m=>m.label+' ('+m.pct.toFixed(1)+'% model estimate)').join('\n');if(!confirm('Confirm selections for your bet slip:\n\n'+text+'\n\nContinue to Bet Tracker? You will confirm the actual placed bet there.'))return;const url=new URL('./bet-tracker.html',location.href);url.searchParams.set('sport',sport);url.searchParams.set('legs',JSON.stringify(legs.map(m=>event+' — '+m.label)));location.href=url.toString();};slip.append(proceed);}};
  const rec=document.createElement('div');rec.style.cssText='margin:12px 0;padding:14px;border:1px solid #52779d;border-radius:10px';const heading2=document.createElement('h3');heading2.textContent='Recommended 2-leg / 3-leg multi';rec.append(heading2);const note2=document.createElement('p');note2.textContent='Provisional: highest individual model probabilities, not a calibrated combined multi probability. Correlated legs may add less safety than expected.';rec.append(note2);for(const n of [2,3]){if(normalized.length<n)continue;const picks=normalized.slice(0,n),desc=document.createElement('p');desc.textContent=picks.map(x=>x.label+' ('+x.pct.toFixed(1)+'%)').join(' + ');rec.append(desc);const add=document.createElement('button');add.textContent='SELECT RECOMMENDED '+n+'-LEG MULTI';add.onclick=()=>{chosen.clear();picks.forEach(x=>chosen.add(x.i));panel.querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=chosen.has(Number(x.dataset.pick)));render();};rec.append(add);}panel.append(rec);
- normalized.forEach(m=>{const row=document.createElement('label');row.style.cssText='display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #30435d;cursor:pointer';const check=document.createElement('input');check.type='checkbox';check.dataset.pick=String(m.i);check.style.cssText='width:auto;flex:none';check.onchange=()=>{if(check.checked)chosen.add(m.i);else chosen.delete(m.i);render();};const label=document.createElement('span');label.textContent='#'+(m.i+1)+' '+m.label+' · '+m.pct.toFixed(1)+'%';row.append(check,label);panel.append(row);});panel.append(slip);container.append(panel);render();
+ normalized.forEach(m=>{const row=document.createElement('label');row.style.cssText='display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #30435d;cursor:pointer';const check=document.createElement('input');check.type='checkbox';check.dataset.pick=String(m.i);check.style.cssText='width:auto;flex:none';check.onchange=()=>{if(check.checked)chosen.add(m.i);else chosen.delete(m.i);render();};const label=document.createElement('span');label.textContent='#'+(m.i+1)+' '+m.label+' · '+m.pct.toFixed(1)+'% · '+marketAvailabilityNote(sport,m.label);row.append(check,label);panel.append(row);});panel.append(slip);container.append(panel);render();
 }
 </script></body></html>
