@@ -51,7 +51,7 @@ button:not(.secondary):not(.danger):hover{background:#ffe5a8;color:#17120c}
 input,select,textarea{background:#101820;border-color:#66543b;color:#f5f0e7}
 button:focus-visible,a:focus-visible,input:focus-visible{outline-color:#e7b65d}
 .status{border-color:#685237;border-left-color:#d6a54b}
-</style></head><body><header><a class="cph-mini-brand" href="./index.html" aria-label="Connor’s Prediction Hub home"><img src="./assets/cph-crest.svg" alt="CPH crest"> CONNORS PREDICTION HUB</a><a href="./index.html">← Prediction Hub</a><h1>Bet Tracker</h1><p>All six sports · Singles and multis · Settled results · Profit and loss</p></header><main><div id="status" class="panel">Checking account access...</div><section id="app" hidden><div class="grid"><div class="stat">Recorded bets<strong id="count">0</strong></div><div class="stat">Pending<strong id="pending">0</strong></div><div class="stat">Settled win rate<strong id="hit">—</strong></div><div class="stat">Net profit / loss<strong id="profit">—</strong></div></div><div class="panel"><h2>Record a bet</h2><p>Only record bets you actually placed. Use the bookmaker's accepted odds and your real stake; leave blank if unknown.</p><div class="grid"><label>Sport<select id="sport"><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><label>Bet type<select id="type"><option value="single">Single</option><option value="multi">Multi</option></select></label><label>Stake (AUD, optional)<input id="stake" type="number" step="0.01" min="0.01" placeholder="5.00"></label><label>Accepted decimal odds (optional)<input id="odds" type="number" step="0.001" min="1.001" placeholder="1.75"></label></div><label>Selections — one leg per line<textarea id="legs" rows="5" placeholder="Team A 2+ goals&#10;Match over 4.5 goals"></textarea></label><label>Notes (optional)<textarea id="notes" rows="2"></textarea></label><button id="save">RECORD BET AS PENDING</button><p id="saveMessage" role="status"></p></div><div class="panel"><h2>My tracked bets</h2><button type="button" id="checkResults">↻ CHECK RESULTS</button><p id="checkResultsStatus" role="status" class="muted">Check official NHL scores to help review your pending bets. No automatic settlement.</p><div id="checkedScores"></div><label>Filter sport<select id="filter"><option value="all">All sports</option><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><p class="muted">Settle only when you know the official outcome. Returns are gross amounts received, including stake. For void bets, use the returned stake.</p><div id="history">Loading...</div></div></section></main><script type="module">
+</style></head><body><header><a class="cph-mini-brand" href="./index.html" aria-label="Connor’s Prediction Hub home"><img src="./assets/cph-crest.svg" alt="CPH crest"> CONNORS PREDICTION HUB</a><a href="./index.html">← Prediction Hub</a><h1>Bet Tracker</h1><p>All six sports · Singles and multis · Settled results · Profit and loss</p></header><main><div id="status" class="panel">Checking account access...</div><section id="app" hidden><div class="grid"><div class="stat">Recorded bets<strong id="count">0</strong></div><div class="stat">Pending<strong id="pending">0</strong></div><div class="stat">Settled win rate<strong id="hit">—</strong></div><div class="stat">Net profit / loss<strong id="profit">—</strong></div></div><div class="panel"><h2>Record a bet</h2><p>Only record bets you actually placed. Use the bookmaker's accepted odds and your real stake; leave blank if unknown.</p><div class="grid"><label>Sport<select id="sport"><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><label>Bet type<select id="type"><option value="single">Single</option><option value="multi">Multi</option></select></label><label>Stake (AUD, optional)<input id="stake" type="number" step="0.01" min="0.01" placeholder="5.00"></label><label>Accepted decimal odds (optional)<input id="odds" type="number" step="0.001" min="1.001" placeholder="1.75"></label></div><label>Selections — one leg per line<textarea id="legs" rows="5" placeholder="Team A 2+ goals&#10;Match over 4.5 goals"></textarea></label><label>Notes (optional)<textarea id="notes" rows="2"></textarea></label><button id="save">RECORD BET AS PENDING</button><p id="saveMessage" role="status"></p></div><div class="panel"><h2>My tracked bets</h2><button type="button" id="checkResults">↻ CHECK ALL RESULTS</button><p id="checkResultsStatus" role="status" class="muted">Checks pending bets across all six sports. Shows available verified scores and flags bets needing manual Win / Loss / Void settlement.</p><div id="checkedScores"></div><label>Filter sport<select id="filter"><option value="all">All sports</option><option value="horse">Horse Racing</option><option value="greyhounds">Greyhounds</option><option value="nhl">NHL</option><option value="nfl">NFL</option><option value="mlb">MLB</option><option value="nbl">NBL</option></select></label><p class="muted">Settle only when you know the official outcome. Returns are gross amounts received, including stake. For void bets, use the returned stake.</p><div id="history">Loading...</div></div></section></main><script type="module">
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const db=createClient('https://uvqbvqhkztdmdiayycuz.supabase.co','sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS');
 const $=id=>document.getElementById(id);let userId,records=[];
@@ -114,48 +114,71 @@ function loadIncomingSelection(){
 
 async function checkOfficialResults(){
  const button=$('checkResults'),message=$('checkResultsStatus'),root=$('checkedScores');
- button.disabled=true;root.replaceChildren();message.textContent='Checking official NHL results…';
+ button.disabled=true;root.replaceChildren();message.textContent='Checking pending bets across all six sports…';
  try{
   const pending=records.filter(b=>b.status==='pending');
   if(!pending.length){message.textContent='No pending bets to check.';return;}
-  const nhl=pending.filter(b=>b.sport==='nhl');
-  if(!nhl.length){message.textContent='No pending NHL bets. Other sports are not yet supported by this results checker.';return;}
   const dates=new Set();
-  for(const bet of nhl){
-   const start=new Date(bet.placed_at);
-   for(let i=0;i<4;i++)dates.add(new Date(start.getTime()+i*86400000).toISOString().slice(0,10));
+  for(const bet of pending){
+   const placed=new Date(bet.placed_at);
+   for(let i=0;i<4;i++)dates.add(new Date(placed.getTime()+i*86400000).toISOString().slice(0,10));
   }
-  const today=new Date().toISOString().slice(0,10);
-  const days=[...dates].filter(d=>d<=today).slice(-24);
-  const results=await Promise.allSettled(days.map(async day=>{
-   const response=await fetch('https://api-web.nhle.com/v1/schedule/'+day,{signal:AbortSignal.timeout(12000)});
-   if(!response.ok)throw Error('NHL service unavailable');
-   const json=await response.json();
-   return (json.gameWeek||[]).flatMap(week=>week.games||[]);
+  const days=[...dates].filter(d=>d<=new Date().toISOString().slice(0,10)).slice(-20);
+  const base='https://uvqbvqhkztdmdiayycuz.supabase.co/functions/v1/';
+  const {data:{session}}=await db.auth.getSession();
+  const headers={apikey:'sb_publishable_8ORcSlzgRyosS3U8_N8SmQ_lj5TT4OS',Authorization:'Bearer '+session.access_token};
+  const sports=['nhl','nfl','mlb','nbl'];
+  const responses=await Promise.allSettled(sports.map(async sport=>{
+   const response=await fetch(base+sport+'-fixtures',{headers,signal:AbortSignal.timeout(16000)});
+   if(!response.ok)throw Error('Fixture feed unavailable');
+   const json=await response.json();return {sport,games:json.games||[]};
   }));
-  const games=[...new Map(results.filter(x=>x.status==='fulfilled').flatMap(x=>x.value).map(g=>[g.id,g])).values()].filter(g=>g.gameState==='OFF'&&Number.isInteger(g.homeTeam?.score)&&Number.isInteger(g.awayTeam?.score));
-  if(!games.length){message.textContent='No verified NHL final scores retrieved. No bets changed.';return;}
-  let count=0;
-  for(const bet of nhl){
-   const placed=new Date(bet.placed_at).getTime();
-   const related=games.filter(g=>{
-    const kickoff=Date.parse(g.startTimeUTC);
-    if(kickoff<placed||kickoff>placed+72*3600000)return false;
-    const text=bet.legs.join(' ').toLowerCase();
-    const home=g.homeTeam?.name?.default||g.homeTeam?.placeName?.default||'';
-    const away=g.awayTeam?.name?.default||g.awayTeam?.placeName?.default||'';
-    return [home,away,g.homeTeam?.abbrev,g.awayTeam?.abbrev].some(s=>s&&s.length>2&&text.includes(String(s).toLowerCase()));
-   });
-   if(!related.length)continue;
-   const box=el('div');box.className='entry';
-   box.append(el('strong','NHL bet · placed '+new Date(bet.placed_at).toLocaleDateString('en-AU')));
-   box.append(el('p',bet.legs.join(' | ')));
-   for(const g of related)box.append(el('p',g.awayTeam.abbrev+' '+g.awayTeam.score+' – '+g.homeTeam.score+' '+g.homeTeam.abbrev+' · FINAL'));
-   box.append(el('small','Review each leg and bookmaker rules before settling manually below.'));
-   root.append(box);count++;
+  const fixtureFeeds=new Map(responses.filter(x=>x.status==='fulfilled').map(x=>[x.value.sport,x.value.games]));
+  const nhlPending=pending.some(b=>b.sport==='nhl');
+  let nhlGames=[];
+  if(nhlPending){
+   const nhlResponses=await Promise.allSettled(days.map(async day=>{
+    const response=await fetch('https://api-web.nhle.com/v1/schedule/'+day,{signal:AbortSignal.timeout(12000)});
+    if(!response.ok)throw Error('Official NHL schedule unavailable');
+    const json=await response.json();return (json.gameWeek||[]).flatMap(w=>w.games||[]);
+   }));
+   nhlGames=[...new Map(nhlResponses.filter(x=>x.status==='fulfilled').flatMap(x=>x.value).map(g=>[g.id,g])).values()].filter(g=>g.gameState==='OFF'&&Number.isInteger(g.homeTeam?.score)&&Number.isInteger(g.awayTeam?.score));
   }
-  message.textContent=count+' pending NHL bet(s) with potentially relevant official final scores. Results are for review only; no bets were settled.';
- }catch(e){message.textContent='Results check failed: '+e.message+'. No bets changed.';}
+  let available=0,manual=0;
+  for(const bet of pending){
+   const box=el('div');box.className='entry';
+   box.append(el('strong',bet.sport.toUpperCase()+' · '+bet.bet_type.toUpperCase()+' · '+new Date(bet.placed_at).toLocaleDateString('en-AU')));
+   box.append(el('p',bet.legs.join(' | ')));
+   let evidence=[];
+   if(bet.sport==='nhl'){
+    const placed=Date.parse(bet.placed_at),words=bet.legs.join(' ').toLowerCase();
+    evidence=nhlGames.filter(g=>{
+     const t=Date.parse(g.startTimeUTC);
+     if(t<placed||t>placed+72*3600000)return false;
+     return [g.homeTeam?.abbrev,g.awayTeam?.abbrev].some(s=>s&&s.length>2&&words.includes(s.toLowerCase()));
+    }).map(g=>g.awayTeam.abbrev+' '+g.awayTeam.score+' – '+g.homeTeam.score+' '+g.homeTeam.abbrev+' · FINAL');
+   }else if(sports.includes(bet.sport)){
+    const fixtures=fixtureFeeds.get(bet.sport)||[];
+    const placed=Date.parse(bet.placed_at),words=bet.legs.join(' ').toLowerCase();
+    evidence=fixtures.filter(g=>{
+     const t=Date.parse(g.date||g.startTimeUTC);
+     if(!Number.isFinite(t)||t<placed||t>placed+72*3600000)return false;
+     const home=typeof g.home==='string'?g.home:'',away=typeof g.away==='string'?g.away:'';
+     return [home,away,g.home_abbrev,g.away_abbrev].some(s=>s&&s.length>2&&words.includes(s.toLowerCase()));
+    }).map(g=>(g.away||g.away_abbrev)+' @ '+(g.home||g.home_abbrev)+' · Fixture found; final score not verified');
+   }
+   if(evidence.length){
+    available++;
+    for(const line of evidence.slice(0,6))box.append(el('p',line));
+    box.append(el('small','Match information found, but each selection still needs manual verification before settlement.'));
+   }else{
+    manual++;
+    box.append(el('p','RESULT NOT VERIFIED — settle manually as Win, Loss or Void using the controls below.'));
+   }
+   root.append(box);
+  }
+  message.textContent='Checked '+pending.length+' pending bets across all sports: '+available+' with related match information; '+manual+' requiring manual result lookup. No bets were changed. Use the settlement controls below for Win / Loss / Void.';
+ }catch(e){message.textContent='Results check could not complete: '+e.message+'. No bets changed.';}
  finally{button.disabled=false;}
 }
 $('checkResults').onclick=checkOfficialResults;
