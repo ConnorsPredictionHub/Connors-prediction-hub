@@ -237,7 +237,7 @@ function marketPlausible(sport,label){
  return true;
 }
 function renderUnifiedBetSlip(container,sport,event,raw){
- const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).slice(0,10);
+ const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>{if(!m.label||!Number.isFinite(m.probability))return false;const pct=m.probability<=1?m.probability*100:m.probability;if(pct<52||pct>88)return false;const label=m.label.toLowerCase();const match=label.match(/(?:over|under)\\s*(\\d+(?:\\.\\d+)?)/);if('nhl.html'==='mlb.html'){if(match&&/game/.test(label)&&Number(match[1])<7.5)return false;if(/team\\s*[23]\\+\\s*runs/.test(label))return false;}else{if(/game over 2\\.5 goals/.test(label))return false;}return true;}).filter((m,i,arr)=>arr.findIndex(x=>x.label.toLowerCase().replace(/\\s+/g,' ').trim()===m.label.toLowerCase().replace(/\\s+/g,' ').trim())===i).sort((a,b)=>(b.probability<=1?b.probability*100:b.probability)-(a.probability<=1?a.probability*100:a.probability)).slice(0,10);
  const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct).map((m,i)=>({...m,rank:i+1}));
  const panel=document.createElement('section');panel.style.cssText='margin-top:18px;padding:18px;border:1px solid #49627d;border-radius:12px;background:#182a43';
  const heading=document.createElement('h3');heading.textContent='Top '+normalized.length+' single bets · Predicted %';panel.append(heading);
