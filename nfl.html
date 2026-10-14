@@ -131,7 +131,7 @@ function renderBetBuilder(data){
   const selected=[...picked].sort((a,b)=>a-b).map(i=>choices[i]);
   const h=document.createElement('h3');h.textContent=selected.length===1?'Single selection':selected.length>1?'Multi selection · '+selected.length+' legs':'Choose bets to build a slip';slip.append(h);
   if(selected.length){const lines=document.createElement('p');lines.style.whiteSpace='pre-wrap';lines.textContent=selected.map((x,i)=>(i+1)+'. '+x.event+' — '+x.selection).join('\n');slip.append(lines);
-   const note=document.createElement('p');note.textContent='No combined probability or bookmaker odds calculated. Check market availability and correlations before placing a bet.';slip.append(note);
+   const note=document.createElement('p');note.textContent='Multi-leg probabilities are not calculated; selections in the same game may be correlated.';slip.append(note);
    const copy=document.createElement('button');copy.textContent='COPY '+(selected.length===1?'SINGLE':'MULTI')+' SELECTION';
    copy.onclick=async()=>{const text=selected.map(x=>x.event+' — '+x.selection).join(' + ');try{await navigator.clipboard.writeText(text);copy.textContent='COPIED';}catch{copy.textContent='COPY UNAVAILABLE';}};slip.append(copy);
    const track=document.createElement('button');track.textContent='ADD TO BET TRACKER';track.onclick=()=>{
