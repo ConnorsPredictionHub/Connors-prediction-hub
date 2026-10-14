@@ -135,7 +135,8 @@ if([muH,muA,sdH,sdA,sdT].every(Number.isFinite)&&sdH>0&&sdA>0&&sdT>0){
  for(const line of [169.5,179.5,189.5,199.5,209.5]){const over=normalCDF((muH+muA-line)/sdT);add('Over '+line+' match points',over);add('Under '+line+' match points',1-over);}
  for(const [team,mean,sd] of [[g.home,muH,sdH],[g.away,muA,sdA]])for(const line of [69.5,79.5,89.5,99.5,109.5]){const over=normalCDF((mean-line)/sd);add(team+' over '+line+' team points',over);add(team+' under '+line+' team points',1-over);}
 }
-const gameMarkets=[...practical,...derived].filter((x,i,arr)=>arr.findIndex(y=>getLabel(y).toLowerCase()===getLabel(x).toLowerCase())===i);
+const canonicalMarket=x=>{const s=getLabel(x).toLowerCase().replace(/\\s+/g,' ').trim().replace(/ team points$/,' points');return s;};
+const gameMarkets=[...practical,...derived].filter((x,i,arr)=>arr.findIndex(y=>canonicalMarket(y)===canonicalMarket(x))===i);
 const gamePickCategories=[
  gameMarkets.filter(x=>/match winner/i.test(getLabel(x))).sort((a,b)=>b.probability-a.probability).slice(0,2),
  gameMarkets.filter(x=>/match points/i.test(getLabel(x))).sort((a,b)=>b.probability-a.probability).slice(0,4),
@@ -155,7 +156,7 @@ const practicalMarket=x=>{
 };
 const pool=[...gameMarkets,...playerPicks].filter(practicalMarket).sort((a,b)=>Number(b.probability)-Number(a.probability));
 const chosen=[],keys=new Set();
-const addPick=p=>{if(!p||chosen.length>=10)return;const key=getLabel(p).toLowerCase();if(keys.has(key))return;keys.add(key);chosen.push(p);};
+const addPick=p=>{if(!p||chosen.length>=10)return;const key=canonicalMarket(p);if(keys.has(key))return;keys.add(key);chosen.push(p);};
 const groups=[
  pool.filter(x=>/match winner/i.test(getLabel(x))),
  pool.filter(x=>/match points/i.test(getLabel(x))),
