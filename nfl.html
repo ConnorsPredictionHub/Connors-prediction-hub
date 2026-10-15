@@ -97,8 +97,9 @@ if(!response)throw Error('NFL service did not respond');
 const canonical=x=>String(x.selection||x.label||'').toLowerCase().replace(/\\s+/g,' ').trim();
 const unique=practical.filter((x,i,a)=>a.findIndex(y=>canonical(y)===canonical(x))===i);
 const buckets=[unique.filter(x=>/match winner/.test(canonical(x))),unique.filter(x=>/game (over|under)/.test(canonical(x))),unique.filter(x=>/team points/.test(canonical(x))),unique.filter(x=>/handicap/.test(canonical(x)))];
-const chosen=[],seen=new Set();const add=x=>{if(!x||chosen.length>=10||seen.has(canonical(x)))return;seen.add(canonical(x));chosen.push(x);};
+const chosen=[],seen=new Set();const add=x=>{if(!x||chosen.length>=16||seen.has(canonical(x)))return;seen.add(canonical(x));chosen.push(x);};
 for(const bucket of buckets){bucket.sort((a,b)=>b.probability-a.probability);add(bucket[0]);}
+for(const x of unique.filter(x=>x.category==='player prop').sort((a,b)=>b.probability-a.probability).slice(0,6))add(x);
 for(const x of unique.sort((a,b)=>b.probability-a.probability))add(x);
 renderUnifiedBetSlip(root,'nfl',game.away+' @ '+game.home,chosen.sort((a,b)=>b.probability-a.probability));renderProjectedScore(root,game.away,game.home,p.projected_points.away,p.projected_points.home,p.projected_points.total,'points');
   const title=document.createElement('h3');title.textContent='NFL V1.0 · Provisional prediction · '+game.away+' @ '+game.home;root.append(title);
@@ -196,7 +197,7 @@ function marketPlausible(sport,label){
  return true;
 }
 function renderUnifiedBetSlip(container,sport,event,raw){
- const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).sort((a,b)=>b.probability-a.probability).slice(0,10);
+ const picks=(Array.isArray(raw)?raw:[]).map((m,i)=>({label:String(m.label||m.selection||''),probability:Number(m.probability),i})).filter(m=>m.label&&Number.isFinite(m.probability)&&m.probability>=0&&m.probability<=100).sort((a,b)=>b.probability-a.probability).slice(0,16);
  const normalized=picks.map(m=>({...m,pct:m.probability<=1?m.probability*100:m.probability})).sort((a,b)=>b.pct-a.pct).map((m,i)=>({...m,rank:i+1}));
  const panel=document.createElement('section');panel.style.cssText='margin-top:18px;padding:18px;border:1px solid #49627d;border-radius:12px;background:#182a43';
  const heading=document.createElement('h3');heading.textContent='Top '+normalized.length+' single bets · Predicted %';panel.append(heading);
