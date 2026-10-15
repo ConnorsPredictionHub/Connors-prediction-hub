@@ -154,13 +154,14 @@ function refresh(){
    const label=el('label','Settle outcome');const select=el('select');
    for(const s of ['won','lost','void']){const opt=el('option',s.toUpperCase());opt.value=s;select.append(opt);}
    label.append(select);item.append(label);
-   const retlabel=el('label','Gross return received (AUD)');const ret=el('input');ret.type='number';ret.min='0';ret.step='0.01';ret.placeholder='Enter actual return';retlabel.append(ret);item.append(retlabel);
+   const payout=el('p');item.append(payout);
+   const calculate=()=>select.value==='lost'?0:select.value==='void'?(p.stake===null?null:Number(p.stake)):p.stake===null||p.decimal_odds===null?null:projectedReturn(p.stake,p.decimal_odds);
+   const showPayout=()=>{const value=calculate();payout.textContent=value===null?'Automatic return unavailable: this saved bet needs stake and accepted odds.':'Automatic gross return: '+money(value)+(p.stake!==null?' · Net P/L: '+money(value-Number(p.stake)):'');};
+   select.addEventListener('change',showPayout);showPayout();
    const button=el('button','SETTLE BET'),msg=el('p');item.append(button,msg);
    button.onclick=async()=>{
-    const status=select.value,amount=ret.value.trim();
-    if(!amount&&!confirm('Return not entered. Settle without a profit/loss calculation?'))return;
-    const returned=amount?Number(amount):null;
-    if(returned!==null&&(!Number.isFinite(returned)||returned<0)){msg.textContent='Enter a valid gross return.';return;}
+    const status=select.value,returned=calculate();
+    if(returned===null){msg.textContent='Cannot calculate this payout because the saved bet is missing stake or odds.';return;}
     if(!confirm('Confirm this bet is '+status.toUpperCase()+'?'))return;
     button.disabled=true;
     const {error}=await db.from('bet_tracker').update({status,settled_return:returned,settled_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',userId).eq('status','pending');
